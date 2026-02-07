@@ -27,6 +27,11 @@ To debug: Open in VS Code and press F5.
 
 `pr-checks.yml` runs parallel jobs: lint + build first, then tests + package.
 Always run `npm run prettier:fix` before committing new files.
+SonarCloud analysis runs via `sonarqube-scan-action@v5` (requires SONAR_TOKEN secret).
+
+## Packaging
+
+VS Code marketplace requires PNG icons - `images/icon.png` (not SVG).
 
 ## Known Issues
 
