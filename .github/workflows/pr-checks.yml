@@ -34,11 +34,6 @@ jobs:
 
       - name: Check linting (oxlint)
         id: oxlint
-        run: npm run oxlint:check
-        continue-on-error: true
-
-      - name: Check linting (ESLint)
-        id: eslint
         run: npm run lint
         continue-on-error: true
 
@@ -48,7 +43,6 @@ jobs:
           FAILED=0
           [ "${{ steps.prettier.outcome }}" != "success" ] && echo "❌ Prettier" && FAILED=1 || echo "✅ Prettier"
           [ "${{ steps.oxlint.outcome }}" != "success" ] && echo "❌ oxlint" && FAILED=1 || echo "✅ oxlint"
-          [ "${{ steps.eslint.outcome }}" != "success" ] && echo "❌ ESLint" && FAILED=1 || echo "✅ ESLint"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================

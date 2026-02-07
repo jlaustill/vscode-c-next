@@ -11,9 +11,8 @@ VS Code extension for C-Next, a safer C for embedded systems. Provides syntax hi
 ```bash
 npm run compile       # Bundle TypeScript with esbuild
 npm run watch         # Watch mode for development
-npm run lint          # Run ESLint
+npm run lint          # Run oxlint
 npm run lint:fix      # Auto-fix linting issues
-npm run oxlint:check  # Fast linting (used in CI)
 npm run typecheck     # TypeScript type checking (not in CI, see Known Issues)
 npm run prettier:check # Check formatting
 npm run prettier:fix  # Auto-format code
