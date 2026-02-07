@@ -179,7 +179,7 @@ export default class WorkspaceIndex {
     }
 
     // Server client required for parsing
-    if (!this.serverClient || !this.serverClient.isRunning()) {
+    if (!this.serverClient?.isRunning()) {
       return;
     }
 
@@ -244,7 +244,7 @@ export default class WorkspaceIndex {
     }
 
     // Server client required for parsing
-    if (!this.serverClient || !this.serverClient.isRunning()) {
+    if (!this.serverClient?.isRunning()) {
       return;
     }
 

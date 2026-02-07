@@ -362,7 +362,7 @@ class CNextServerClient {
     params: Record<string, unknown>,
   ): Promise<unknown> {
     return new Promise((resolve, reject) => {
-      if (!this.process || !this.process.stdin) {
+      if (!this.process?.stdin) {
         reject(new Error("Server not running"));
         return;
       }

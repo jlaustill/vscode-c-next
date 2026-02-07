@@ -173,7 +173,7 @@ export default class PreviewProvider implements vscode.Disposable {
 
     // Check if server is available
     const serverClient = this.extensionContext?.serverClient;
-    if (!serverClient || !serverClient.isRunning()) {
+    if (!serverClient?.isRunning()) {
       this.lastError = "Server not available";
       this.updateStatusBar(false, 1);
       this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
