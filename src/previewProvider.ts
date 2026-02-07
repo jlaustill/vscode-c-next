@@ -38,9 +38,7 @@ export default class PreviewProvider implements vscode.Disposable {
    * Get singleton instance
    */
   public static getInstance(): PreviewProvider {
-    if (!PreviewProvider.instance) {
-      PreviewProvider.instance = new PreviewProvider();
-    }
+    PreviewProvider.instance ??= new PreviewProvider();
     return PreviewProvider.instance;
   }
 

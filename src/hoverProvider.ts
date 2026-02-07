@@ -623,12 +623,8 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       }
     } else {
       symbol = symbols.find((s) => s.name === word && !s.parent);
-      if (!symbol) {
-        symbol = symbols.find((s) => s.fullName === word);
-      }
-      if (!symbol) {
-        symbol = symbols.find((s) => s.name === word);
-      }
+      symbol ??= symbols.find((s) => s.fullName === word);
+      symbol ??= symbols.find((s) => s.name === word);
     }
 
     if (symbol) {

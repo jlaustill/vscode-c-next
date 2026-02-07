@@ -105,12 +105,8 @@ export default class CNextDefinitionProvider
 
     // Looking for a top-level symbol or any symbol with this name
     let symbol = symbols.find((s) => s.name === word && !s.parent);
-    if (!symbol) {
-      symbol = symbols.find((s) => s.fullName === word);
-    }
-    if (!symbol) {
-      symbol = symbols.find((s) => s.name === word);
-    }
+    symbol ??= symbols.find((s) => s.fullName === word);
+    symbol ??= symbols.find((s) => s.name === word);
 
     return symbol;
   }

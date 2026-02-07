@@ -70,9 +70,7 @@ export default class WorkspaceIndex {
    * Get the singleton instance
    */
   static getInstance(): WorkspaceIndex {
-    if (!WorkspaceIndex.instance) {
-      WorkspaceIndex.instance = new WorkspaceIndex();
-    }
+    WorkspaceIndex.instance ??= new WorkspaceIndex();
     return WorkspaceIndex.instance;
   }
 
