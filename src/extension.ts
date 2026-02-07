@@ -15,9 +15,6 @@ let workspaceIndex: WorkspaceIndex;
 let extensionContext: CNextExtensionContext;
 let serverClient: CNextServerClient;
 
-// Track last successful transpilation per file (to avoid writing bad code)
-const lastGoodTranspile: Map<string, string> = new Map();
-
 // Debounce timers for .c file generation
 const transpileTimers: Map<string, NodeJS.Timeout> = new Map();
 
@@ -140,9 +137,6 @@ async function transpileToFile(document: vscode.TextDocument): Promise<void> {
     const result = await serverClient.transpile(source, cnxPath);
 
     if (result.success) {
-      // Store as last good transpilation
-      lastGoodTranspile.set(document.uri.toString(), result.code);
-
       // Use cppDetected from server (auto-detected from headers)
       const outputExt = result.cppDetected ? ".cpp" : ".c";
       const outputPath = cnxPath.replace(/\.cnx$/, outputExt);

@@ -465,7 +465,7 @@ function buildSymbolHover(
       }
       break;
 
-    case "registerMember":
+    case "registerMember": {
       const access = symbol.accessModifier || "rw";
       md.appendMarkdown(`**register member** \`${displayName}\`\n\n`);
       md.appendCodeblock(`${symbol.type || "u32"} ${access}`, "cnext");
@@ -474,6 +474,7 @@ function buildSymbolHover(
         md.appendMarkdown(`\n\n*Register:* ${displayParent}`);
       }
       break;
+    }
 
     default:
       md.appendMarkdown(`**${symbol.kind}** \`${symbol.name}\``);

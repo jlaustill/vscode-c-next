@@ -491,8 +491,11 @@ export default class CNextCompletionProvider
         );
       }
 
+      const symbolStatus = symbol
+        ? `found (kind=${symbol.kind}, type=${symbol.type})`
+        : "not found";
       this.debug(
-        `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${symbol ? `found (kind=${symbol.kind}, type=${symbol.type})` : "not found"}`,
+        `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${symbolStatus}`,
       );
 
       if (!symbol) {
@@ -507,8 +510,12 @@ export default class CNextCompletionProvider
       }
 
       // Determine the next parent based on symbol kind and type
-      if (symbol.kind === "register" || symbol.kind === "namespace") {
-        // For registers/namespaces, the parent for children is scope_name
+      if (
+        symbol.kind === "register" ||
+        symbol.kind === "namespace" ||
+        !symbol.type
+      ) {
+        // For registers/namespaces or symbols without type info, use underscore concatenation
         currentParent = currentParent
           ? `${currentParent}_${memberName}`
           : memberName;
@@ -522,7 +529,7 @@ export default class CNextCompletionProvider
         this.debug(
           `C-Next DEBUG:   Using fullName: "${memberName}" -> parent="${currentParent}"`,
         );
-      } else if (symbol.type) {
+      } else {
         // For typed members (registerMember, variable, field), use the TYPE
         // The type needs to be qualified with the scope if it's a scoped type
         const typeName = symbol.type;
@@ -555,11 +562,6 @@ export default class CNextCompletionProvider
             `C-Next DEBUG:   Type "${typeName}" not found as symbol, using "${currentParent}"`,
           );
         }
-      } else {
-        // No type info - fall back to underscore concatenation
-        currentParent = currentParent
-          ? `${currentParent}_${memberName}`
-          : memberName;
       }
     }
 

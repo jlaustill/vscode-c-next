@@ -31,7 +31,7 @@ export default class PreviewProvider implements vscode.Disposable {
       100,
     );
     this.statusBarItem.command = "workbench.actions.view.problems";
-    this.updateStatusBar(true, 0);
+    this.showStatusBarSuccess();
   }
 
   /**
@@ -173,7 +173,7 @@ export default class PreviewProvider implements vscode.Disposable {
     const serverClient = this.extensionContext?.serverClient;
     if (!serverClient?.isRunning()) {
       this.lastError = "Server not available";
-      this.updateStatusBar(false, 1);
+      this.showStatusBarError(1);
       this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
       return;
     }
@@ -188,7 +188,7 @@ export default class PreviewProvider implements vscode.Disposable {
       if (result.success) {
         this.lastGoodCode = result.code;
         this.lastError = null;
-        this.updateStatusBar(true, 0);
+        this.showStatusBarSuccess();
       } else {
         this.lastError = result.errors
           .map(
@@ -196,14 +196,14 @@ export default class PreviewProvider implements vscode.Disposable {
               `Line ${e.line}:${e.column} - ${e.message}`,
           )
           .join("\n");
-        this.updateStatusBar(false, result.errors.length);
+        this.showStatusBarError(result.errors.length);
       }
 
       this.panel.webview.html = this.getHtml(this.lastGoodCode, this.lastError);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.lastError = `Internal error: ${message}`;
-      this.updateStatusBar(false, 1);
+      this.showStatusBarError(1);
       if (this.panel) {
         this.panel.webview.html = this.getHtml(
           this.lastGoodCode,
@@ -227,20 +227,23 @@ export default class PreviewProvider implements vscode.Disposable {
   }
 
   /**
-   * Update status bar item
+   * Update status bar to show success state
    */
-  private updateStatusBar(success: boolean, errorCount: number): void {
-    if (success) {
-      this.statusBarItem.text = "$(check) C-Next";
-      this.statusBarItem.tooltip = "C-Next: No errors";
-      this.statusBarItem.backgroundColor = undefined;
-    } else {
-      this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount === 1 ? "" : "s"}`;
-      this.statusBarItem.tooltip = "C-Next: Click to view errors";
-      this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-        "statusBarItem.errorBackground",
-      );
-    }
+  private showStatusBarSuccess(): void {
+    this.statusBarItem.text = "$(check) C-Next";
+    this.statusBarItem.tooltip = "C-Next: No errors";
+    this.statusBarItem.backgroundColor = undefined;
+  }
+
+  /**
+   * Update status bar to show error state
+   */
+  private showStatusBarError(errorCount: number): void {
+    this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount === 1 ? "" : "s"}`;
+    this.statusBarItem.tooltip = "C-Next: Click to view errors";
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground",
+    );
   }
 
   /**
@@ -282,21 +285,24 @@ export default class PreviewProvider implements vscode.Disposable {
       '<span class="preprocessor">$1</span>',
     );
 
-    // Keywords
-    const keywords =
-      /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto|sizeof|typedef|struct|union|enum|const|volatile|static|extern|inline|void|register)\b/g;
-    html = html.replaceAll(keywords, '<span class="keyword">$1</span>');
+    // Keywords (split into groups to reduce regex complexity)
+    const controlKeywords = /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto)\b/g;
+    const typeKeywords = /\b(sizeof|typedef|struct|union|enum|void|register)\b/g;
+    const modifierKeywords = /\b(const|volatile|static|extern|inline)\b/g;
+    html = html.replaceAll(controlKeywords, '<span class="keyword">$1</span>');
+    html = html.replaceAll(typeKeywords, '<span class="keyword">$1</span>');
+    html = html.replaceAll(modifierKeywords, '<span class="keyword">$1</span>');
 
     // Types
     const types =
       /\b(int|char|short|long|float|double|signed|unsigned|bool|uint8_t|uint16_t|uint32_t|uint64_t|int8_t|int16_t|int32_t|int64_t|size_t)\b/g;
     html = html.replaceAll(types, '<span class="type">$1</span>');
 
-    // Numbers (hex, binary, decimal, float)
-    html = html.replaceAll(
-      /\b(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.?\d*[fF]?|\d+[uUlL]*)\b/g,
-      '<span class="number">$1</span>',
-    );
+    // Numbers (split into groups to reduce regex complexity)
+    html = html.replaceAll(/\b(0[xX][0-9a-fA-F]+)\b/g, '<span class="number">$1</span>');
+    html = html.replaceAll(/\b(0[bB][01]+)\b/g, '<span class="number">$1</span>');
+    html = html.replaceAll(/\b(\d+\.\d*[fF]?)\b/g, '<span class="number">$1</span>');
+    html = html.replaceAll(/\b(\d+[uUlL]*)\b/g, '<span class="number">$1</span>');
 
     // Function calls (word followed by parenthesis)
     html = html.replaceAll(
