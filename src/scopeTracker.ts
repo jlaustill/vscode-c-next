@@ -1,4 +1,10 @@
+import { isCommentLine, stripComments, trackBraces } from "./utils";
+
 export default class ScopeTracker {
+  /**
+   * Get the name of a context (scope or function) at the given cursor position
+   * Uses pattern matching to identify context boundaries and brace tracking for scope
+   */
   private static getContext(
     source: string,
     cursorLine: number,
@@ -16,13 +22,14 @@ export default class ScopeTracker {
     ) {
       const line = lines[lineNum];
       const trimmed = line.trim();
-      if (
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("/*") ||
-        trimmed.startsWith("*")
-      )
-        continue;
-      const clean = line.replace(/\/\/.*$/, "").replaceAll(/\/\*.*?\*\//g, "");
+
+      // Skip comment lines
+      if (isCommentLine(trimmed)) continue;
+
+      // Remove inline comments
+      const clean = stripComments(line);
+
+      // Check for context start (scope/function declaration)
       const match = pattern.exec(clean);
       if (match) {
         currentName = match[1];
@@ -30,17 +37,22 @@ export default class ScopeTracker {
         braceDepth++;
         continue;
       }
-      for (const ch of clean) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") {
-          braceDepth--;
-          if (currentName && braceDepth <= blockStartDepth) {
-            currentName = null;
-            blockStartDepth = 0;
-          }
-        }
+
+      // Track braces and detect context exit
+      const braceState = trackBraces(clean, braceDepth);
+      braceDepth = braceState.depth;
+
+      // If we closed below the block start depth, we've exited the context
+      if (
+        currentName &&
+        braceState.closedToDepth !== null &&
+        braceState.closedToDepth <= blockStartDepth
+      ) {
+        currentName = null;
+        blockStartDepth = 0;
       }
     }
+
     return currentName;
   }
 

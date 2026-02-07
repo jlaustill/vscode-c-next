@@ -11,6 +11,14 @@ import {
   findOutputPath,
   MAX_GLOBAL_COMPLETION_ITEMS,
   MIN_PREFIX_LENGTH_FOR_CPP_QUERY,
+  findSymbolByName,
+  concatParentName,
+  resolveChainStart,
+  resolveNextParent,
+  countBraceChange,
+  C_FUNCTION_DECLARATION_PATTERN,
+  INDENTED_LINE_PATTERN,
+  INDENTATION_PATTERN,
 } from "./utils";
 import ScopeTracker from "./scopeTracker";
 
@@ -243,7 +251,7 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
 function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
   const item = new vscode.CompletionItem(
     symbol.name,
-    mapToCompletionKind(symbol.kind),
+    mapToCompletionKind(symbol.kind as TSymbolKind),
   );
 
   // Build detail string
@@ -451,118 +459,50 @@ export default class CNextCompletionProvider
   ): string | null {
     if (chain.length === 0) return null;
 
-    let currentParent: string;
+    // Resolve starting point based on first element
+    const startResult = resolveChainStart(chain[0], currentScope);
+    if (!startResult) return null;
+    if (chain[0] === "global" && chain.length === 1) return null;
 
-    // Start resolution based on first element
-    if (chain[0] === "this") {
-      if (!currentScope) return null;
-      currentParent = currentScope;
-    } else if (chain[0] === "global") {
-      // global.X means X is a top-level symbol
-      if (chain.length === 1) return null;
-      // For global, start with empty parent (top-level)
-      currentParent = "";
-    } else {
-      // Regular identifier - start from it directly
-      currentParent = chain[0];
-    }
+    let currentParent = startResult.parent;
+    const startIndex = startResult.startIndex;
 
     this.debug(
       `C-Next DEBUG: Resolving chain [${chain.join(", ")}], starting parent="${currentParent}"`,
     );
 
-    // Resolve each subsequent element using type-aware lookup
-    const startIndex = chain[0] === "global" ? 1 : 0;
+    // Resolve each element using type-aware lookup
     for (let i = startIndex; i < chain.length; i++) {
       const memberName = chain[i];
-      const parentToMatch = currentParent; // Capture current value for callback
+      const parentConstraint = currentParent === "" ? null : currentParent;
+      const symbol = findSymbolByName(symbols, memberName, parentConstraint);
 
-      // Find the symbol for this member
-      // For scoped members, look for: parent_memberName or just memberName with matching parent
-      let symbol: ISymbolInfo | undefined;
-
-      if (parentToMatch === "") {
-        // Global scope - find top-level symbol
-        symbol = symbols.find((s) => s.name === memberName && !s.parent);
-      } else {
-        // Scoped - find symbol with matching parent
-        symbol = symbols.find(
-          (s) => s.name === memberName && s.parent === parentToMatch,
-        );
-      }
-
-      const symbolStatus = symbol
-        ? `found (kind=${symbol.kind}, type=${symbol.type})`
-        : "not found";
       this.debug(
-        `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${symbolStatus}`,
+        `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${
+          symbol
+            ? `found (kind=${symbol.kind}, type=${symbol.type})`
+            : "not found"
+        }`,
       );
 
       if (!symbol) {
-        // Symbol not found - try the simple underscore concatenation as fallback
-        currentParent = currentParent
-          ? `${currentParent}_${memberName}`
-          : memberName;
+        // Fallback: underscore concatenation
+        currentParent = concatParentName(currentParent, memberName);
         this.debug(
           `C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`,
         );
         continue;
       }
 
-      // Determine the next parent based on symbol kind and type
-      if (
-        symbol.kind === "register" ||
-        symbol.kind === "namespace" ||
-        !symbol.type
-      ) {
-        // For registers/namespaces or symbols without type info, use underscore concatenation
-        currentParent = currentParent
-          ? `${currentParent}_${memberName}`
-          : memberName;
-      } else if (
-        symbol.fullName &&
-        symbols.some((s) => s.parent === symbol.fullName)
-      ) {
-        // Symbol has a fullName and there are children using it as parent
-        // This handles bitmap/struct TYPE definitions whose fields use fullName as parent
-        currentParent = symbol.fullName;
-        this.debug(
-          `C-Next DEBUG:   Using fullName: "${memberName}" -> parent="${currentParent}"`,
-        );
-      } else {
-        // For typed members (registerMember, variable, field), use the TYPE
-        // The type needs to be qualified with the scope if it's a scoped type
-        const typeName = symbol.type;
-
-        // Check if this type exists as a scoped type (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
-        const scopedTypeName = currentScope
-          ? `${currentScope}_${typeName}`
-          : typeName;
-
-        // Find the type symbol - could be named either way
-        const typeSymbol = symbols.find(
-          (s) => s.name === scopedTypeName || s.name === typeName,
-        );
-
-        if (typeSymbol) {
-          // Use the FULLY QUALIFIED name: if the type symbol has a parent, combine them
-          // e.g., symbol named "GPIO7Pins" with parent "Teensy4" -> "Teensy4_GPIO7Pins"
-          if (typeSymbol.parent) {
-            currentParent = `${typeSymbol.parent}_${typeSymbol.name}`;
-          } else {
-            currentParent = typeSymbol.name;
-          }
-          this.debug(
-            `C-Next DEBUG:   Type-aware: "${memberName}" has type "${typeName}" -> parent="${currentParent}"`,
-          );
-        } else {
-          // Type not found as symbol, just use the type name with scope prefix
-          currentParent = scopedTypeName;
-          this.debug(
-            `C-Next DEBUG:   Type "${typeName}" not found as symbol, using "${currentParent}"`,
-          );
-        }
-      }
+      // Resolve next parent based on symbol type
+      currentParent = resolveNextParent(
+        symbol,
+        currentParent,
+        memberName,
+        currentScope,
+        symbols,
+      );
+      this.debug(`C-Next DEBUG:   Resolved to parent="${currentParent}"`);
     }
 
     this.debug(
@@ -1077,47 +1017,45 @@ export default class CNextCompletionProvider
   }
 
   /**
+   * Check if a line looks like the start of a function body (indented, non-empty, non-comment)
+   */
+  private isValidFunctionBodyLine(line: string, trimmed: string): boolean {
+    return (
+      INDENTED_LINE_PATTERN.test(line) &&
+      trimmed.length > 0 &&
+      !trimmed.startsWith("//")
+    );
+  }
+
+  /**
    * Find a position inside a function body where global objects like Serial are valid
    * Returns position at the START of a line inside a function body (where new statements go)
    */
   private findPositionInsideFunction(source: string): vscode.Position {
     const lines = source.split("\n");
-
-    // Strategy: Find a function body and position at the start of an indented line
-    // This simulates where a user would type a new statement
     let inFunction = false;
     let braceDepth = 0;
 
+    // Primary search: Find an indented line inside a function body
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
 
       // Track function entry
-      if (
-        /^(void|int|bool|char|float|double|uint\d+_t|int\d+_t)\s+\w+\s*\([^)]*\)\s*\{?$/.test(
-          trimmed,
-        )
-      ) {
+      if (C_FUNCTION_DECLARATION_PATTERN.test(trimmed)) {
         inFunction = true;
       }
 
-      // Track braces
-      for (const ch of line) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") braceDepth--;
-      }
+      // Track braces using utility
+      braceDepth += countBraceChange(line);
 
-      // If we're inside a function (braceDepth > 0) and see an indented line
-      // Return position at the START of the indentation (where typing begins)
+      // Check if we found a valid position inside a function
       if (
         inFunction &&
         braceDepth > 0 &&
-        /^\s{4,}/.test(line) &&
-        trimmed.length > 0 &&
-        !trimmed.startsWith("//")
+        this.isValidFunctionBodyLine(line, trimmed)
       ) {
-        // Find the indentation level
-        const indent = /^(\s+)/.exec(line)?.[1].length || 4;
+        const indent = INDENTATION_PATTERN.exec(line)?.[1].length ?? 4;
         this.debug(
           `C-Next: Querying inside function at line ${i}, indent ${indent}: "${trimmed.substring(0, 20)}..."`,
         );
@@ -1125,18 +1063,26 @@ export default class CNextCompletionProvider
       }
     }
 
-    // Fallback: look for opening brace of a function and position after it
+    // Fallback: look for opening brace of common function patterns
+    return this.findFunctionOpeningPosition(lines);
+  }
+
+  /**
+   * Fallback: find position after a function opening brace
+   */
+  private findFunctionOpeningPosition(lines: string[]): vscode.Position {
+    const functionKeywords = ["void ", "int ", "setup", "loop"];
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      if (
-        line.includes("{") &&
-        (line.includes("void ") ||
-          line.includes("int ") ||
-          line.includes("setup") ||
-          line.includes("loop"))
-      ) {
+      const hasOpenBrace = line.includes("{");
+      const hasFunctionKeyword = functionKeywords.some((kw) =>
+        line.includes(kw),
+      );
+
+      if (hasOpenBrace && hasFunctionKeyword) {
         this.debug(`C-Next: Found function opening at line ${i}`);
-        return new vscode.Position(i + 1, 4); // Position inside function with indent
+        return new vscode.Position(i + 1, 4);
       }
     }
 
@@ -1153,7 +1099,9 @@ export default class CNextCompletionProvider
     parentName: string,
   ): vscode.Position | null {
     const lines = source.split("\n");
-    const pattern = new RegExp(String.raw`\b` + escapeRegex(parentName) + String.raw`\.`);
+    const pattern = new RegExp(
+      String.raw`\b` + escapeRegex(parentName) + String.raw`\.`,
+    );
 
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];

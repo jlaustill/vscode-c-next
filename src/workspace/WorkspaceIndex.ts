@@ -478,41 +478,44 @@ export default class WorkspaceIndex {
   }
 
   /**
+   * Collect unique file paths matching a filename from symbols
+   * Returns true if more than one unique path is found (early exit optimization)
+   */
+  private collectMatchingFiles(
+    symbols: ISymbolInfo[],
+    fileName: string,
+    existingFiles: Set<string>,
+  ): boolean {
+    for (const symbol of symbols) {
+      if (!symbol.sourceFile) continue;
+      if (path.basename(symbol.sourceFile) !== fileName) continue;
+
+      existingFiles.add(symbol.sourceFile);
+      if (existingFiles.size > 1) return true;
+    }
+    return false;
+  }
+
+  /**
    * Check if a filename exists in multiple locations in the workspace
    * Used for smart path display in hover tooltips
    */
   hasFilenameConflict(fileName: string): boolean {
     const allFiles = new Set<string>();
 
-    // Check CNX files
-    const cnxSymbols = this.cache.getAllSymbols();
-    for (const symbol of cnxSymbols) {
-      if (symbol.sourceFile) {
-        const name = path.basename(symbol.sourceFile);
-        if (name === fileName) {
-          allFiles.add(symbol.sourceFile);
-          if (allFiles.size > 1) {
-            return true;
-          }
-        }
-      }
-    }
-
-    // Check header files
-    const headerSymbols = this.headerCache.getAllSymbols();
-    for (const symbol of headerSymbols) {
-      if (symbol.sourceFile) {
-        const name = path.basename(symbol.sourceFile);
-        if (name === fileName) {
-          allFiles.add(symbol.sourceFile);
-          if (allFiles.size > 1) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
+    // Check CNX files, then header files
+    return (
+      this.collectMatchingFiles(
+        this.cache.getAllSymbols(),
+        fileName,
+        allFiles,
+      ) ||
+      this.collectMatchingFiles(
+        this.headerCache.getAllSymbols(),
+        fileName,
+        allFiles,
+      )
+    );
   }
 
   /**

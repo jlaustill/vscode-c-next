@@ -255,7 +255,7 @@ export async function activate(
   workspaceIndex.setStatusBarItem(statusBarItem);
 
   // Initialize the workspace index with workspace folders
-  workspaceIndex.initialize(vscode.workspace.workspaceFolders || []);
+  workspaceIndex.initialize([...(vscode.workspace.workspaceFolders || [])]);
 
   // File watcher for .cnx files (cross-file symbol updates)
   const cnxWatcher = vscode.workspace.createFileSystemWatcher("**/*.cnx");

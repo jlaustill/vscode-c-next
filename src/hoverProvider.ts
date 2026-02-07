@@ -4,7 +4,13 @@ import * as fs from "node:fs";
 import { ISymbolInfo } from "./server/CNextServerClient";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
-import { getAccessDescription, escapeRegex, findOutputPath } from "./utils";
+import {
+  getAccessDescription,
+  escapeRegex,
+  findOutputPath,
+  findSymbolByName,
+  findSymbolWithFallback,
+} from "./utils";
 
 /**
  * Language type for file detection
@@ -346,6 +352,191 @@ function resolveDisplayParent(
 }
 
 /**
+ * Context for building symbol hover content
+ */
+interface IHoverContext {
+  symbol: ISymbolWithFile;
+  displayName: string;
+  displayParent?: string;
+  scopeName?: string;
+}
+
+/**
+ * Append "Defined in" scope info if available
+ */
+function appendDefinedIn(md: vscode.MarkdownString, scopeName?: string): void {
+  if (scopeName) {
+    md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
+  }
+}
+
+/**
+ * Build hover for container types (scope, namespace, class)
+ */
+function buildContainerHover(
+  md: vscode.MarkdownString,
+  kind: string,
+  name: string,
+  description: string,
+): void {
+  md.appendMarkdown(`**${kind}** \`${name}\`\n\n`);
+  md.appendMarkdown(description);
+}
+
+/**
+ * Build hover for function/method symbols
+ */
+function buildFunctionHover(
+  md: vscode.MarkdownString,
+  ctx: IHoverContext,
+): void {
+  const { symbol, displayName, scopeName } = ctx;
+  md.appendMarkdown(`**function** \`${displayName}\`\n\n`);
+
+  // Build display signature with dot notation
+  let displaySignature =
+    symbol.signature || `${symbol.type || "void"} ${symbol.name}()`;
+  if (symbol.parent) {
+    const underscoreName = `${symbol.parent}_${symbol.name}`;
+    const dotName = `${symbol.parent}.${symbol.name}`;
+    displaySignature = displaySignature.replace(underscoreName, dotName);
+  }
+  md.appendCodeblock(displaySignature, "cnext");
+  if (scopeName) {
+    md.appendMarkdown(`\n*Defined in: ${scopeName} scope*`);
+  }
+}
+
+/**
+ * Build hover for variable/field symbols
+ */
+function buildVariableHover(
+  md: vscode.MarkdownString,
+  ctx: IHoverContext,
+): void {
+  const { symbol, displayName, scopeName } = ctx;
+  const kindLabel = symbol.parent ? "field" : "variable";
+  md.appendMarkdown(`**${kindLabel}** \`${displayName}\`\n\n`);
+  md.appendMarkdown(`*Type:* \`${symbol.type || "unknown"}\``);
+  if (symbol.size !== undefined) {
+    md.appendMarkdown(`\n\n*Size:* ${symbol.size}`);
+  }
+  appendDefinedIn(md, scopeName);
+}
+
+/**
+ * Build hover for bitmap field symbols
+ */
+function buildBitmapFieldHover(
+  md: vscode.MarkdownString,
+  ctx: IHoverContext,
+): void {
+  const { symbol, displayName, displayParent } = ctx;
+  md.appendMarkdown(`**bitmap field** \`${displayName}\`\n\n`);
+  if (symbol.type) {
+    md.appendMarkdown(`*Type:* \`${symbol.type}\``);
+  }
+  if (symbol.signature) {
+    md.appendMarkdown(`\n\n*Range:* ${symbol.signature}`);
+  }
+  if (displayParent) {
+    md.appendMarkdown(`\n\n*Bitmap:* ${displayParent}`);
+  }
+}
+
+/**
+ * Build hover for register member symbols
+ */
+function buildRegisterMemberHover(
+  md: vscode.MarkdownString,
+  ctx: IHoverContext,
+): void {
+  const { symbol, displayName, displayParent } = ctx;
+  const access = symbol.accessModifier || "rw";
+  md.appendMarkdown(`**register member** \`${displayName}\`\n\n`);
+  md.appendCodeblock(`${symbol.type || "u32"} ${access}`, "cnext");
+  md.appendMarkdown(`\n*Access:* ${getAccessDescription(access)}`);
+  if (displayParent) {
+    md.appendMarkdown(`\n\n*Register:* ${displayParent}`);
+  }
+}
+
+/**
+ * Build the main hover content based on symbol kind
+ */
+function buildHoverContent(
+  md: vscode.MarkdownString,
+  ctx: IHoverContext,
+): void {
+  const { symbol, displayName, displayParent, scopeName } = ctx;
+
+  switch (symbol.kind) {
+    case "scope":
+    case "namespace":
+      buildContainerHover(
+        md,
+        "scope",
+        symbol.name,
+        "Singleton service with prefixed member names.",
+      );
+      break;
+    case "class":
+      buildContainerHover(
+        md,
+        "class",
+        symbol.name,
+        "Type with fields and methods.",
+      );
+      break;
+    case "struct":
+      buildContainerHover(md, "struct", displayName, "Data structure.");
+      break;
+    case "register":
+      buildContainerHover(
+        md,
+        "register",
+        displayName,
+        "Hardware register binding for memory-mapped I/O.",
+      );
+      break;
+    case "function":
+    case "method":
+      buildFunctionHover(md, ctx);
+      break;
+    case "variable":
+    case "field":
+      buildVariableHover(md, ctx);
+      break;
+    case "enum":
+      buildContainerHover(md, "enum", displayName, "Type-safe enumeration.");
+      appendDefinedIn(md, scopeName);
+      break;
+    case "enumMember":
+      md.appendMarkdown(`**enum member** \`${displayName}\`\n\n`);
+      if (symbol.type) md.appendMarkdown(`*Value:* ${symbol.type}`);
+      if (displayParent) md.appendMarkdown(`\n\n*Enum:* ${displayParent}`);
+      break;
+    case "bitmap":
+      buildContainerHover(
+        md,
+        "bitmap",
+        displayName,
+        "Bit-field type for hardware registers.",
+      );
+      appendDefinedIn(md, scopeName);
+      break;
+    case "bitmapField":
+      buildBitmapFieldHover(md, ctx);
+      break;
+    case "registerMember":
+      buildRegisterMemberHover(md, ctx);
+      break;
+    default:
+      md.appendMarkdown(`**${symbol.kind}** \`${symbol.name}\``);
+  }
+}
+
+/**
  * Build hover content for a symbol
  * @param symbol The symbol to build hover for
  * @param symbols All symbols in scope (for parent chain resolution)
@@ -361,133 +552,30 @@ function buildSymbolHover(
   const md = new vscode.MarkdownString();
   md.isTrusted = true;
 
-  // Use C-Next dot notation, resolving parent chain through symbol list
+  // Build context for hover content
   const displayParent = symbol.parent
     ? resolveDisplayParent(symbol.parent, symbols, workspaceIndex)
     : undefined;
-  const displayName = displayParent
-    ? `${displayParent}.${symbol.name}`
-    : symbol.name;
+  const ctx: IHoverContext = {
+    symbol,
+    displayName: displayParent
+      ? `${displayParent}.${symbol.name}`
+      : symbol.name,
+    displayParent,
+    scopeName: displayParent?.split(".")[0],
+  };
 
-  // Top-level scope name for "Defined in" (e.g., "LED" from "LED.toggle")
-  const scopeName = displayParent?.split(".")[0];
-
-  switch (symbol.kind) {
-    case "scope":
-    case "namespace": // Legacy support
-      md.appendMarkdown(`**scope** \`${symbol.name}\`\n\n`);
-      md.appendMarkdown(`Singleton service with prefixed member names.`);
-      break;
-
-    case "class":
-      md.appendMarkdown(`**class** \`${symbol.name}\`\n\n`);
-      md.appendMarkdown(`Type with fields and methods.`);
-      break;
-
-    case "struct":
-      md.appendMarkdown(`**struct** \`${displayName}\`\n\n`);
-      md.appendMarkdown(`Data structure.`);
-      break;
-
-    case "register":
-      md.appendMarkdown(`**register** \`${displayName}\`\n\n`);
-      md.appendMarkdown(`Hardware register binding for memory-mapped I/O.`);
-      break;
-
-    case "function":
-    case "method": {
-      md.appendMarkdown(`**function** \`${displayName}\`\n\n`);
-      // Replace C-style underscore name with C-Next dot notation in signature
-      let displaySignature =
-        symbol.signature || `${symbol.type || "void"} ${symbol.name}()`;
-      if (symbol.parent) {
-        const underscoreName = `${symbol.parent}_${symbol.name}`;
-        const dotName = `${symbol.parent}.${symbol.name}`;
-        displaySignature = displaySignature.replace(underscoreName, dotName);
-      }
-      md.appendCodeblock(displaySignature, "cnext");
-      if (scopeName) {
-        md.appendMarkdown(`\n*Defined in: ${scopeName} scope*`);
-      }
-      break;
-    }
-
-    case "variable":
-    case "field":
-      md.appendMarkdown(
-        `**${symbol.parent ? "field" : "variable"}** \`${displayName}\`\n\n`,
-      );
-      md.appendMarkdown(`*Type:* \`${symbol.type || "unknown"}\``);
-      if (symbol.size !== undefined) {
-        md.appendMarkdown(`\n\n*Size:* ${symbol.size}`);
-      }
-      if (scopeName) {
-        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
-      }
-      break;
-
-    case "enum":
-      md.appendMarkdown(`**enum** \`${displayName}\`\n\n`);
-      md.appendMarkdown(`Type-safe enumeration.`);
-      if (scopeName) {
-        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
-      }
-      break;
-
-    case "enumMember":
-      md.appendMarkdown(`**enum member** \`${displayName}\`\n\n`);
-      if (symbol.type) {
-        md.appendMarkdown(`*Value:* ${symbol.type}`);
-      }
-      if (displayParent) {
-        md.appendMarkdown(`\n\n*Enum:* ${displayParent}`);
-      }
-      break;
-
-    case "bitmap":
-      md.appendMarkdown(`**bitmap** \`${displayName}\`\n\n`);
-      md.appendMarkdown(`Bit-field type for hardware registers.`);
-      if (scopeName) {
-        md.appendMarkdown(`\n\n*Defined in:* ${scopeName} scope`);
-      }
-      break;
-
-    case "bitmapField":
-      md.appendMarkdown(`**bitmap field** \`${displayName}\`\n\n`);
-      if (symbol.type) {
-        md.appendMarkdown(`*Type:* \`${symbol.type}\``);
-      }
-      if (symbol.signature) {
-        md.appendMarkdown(`\n\n*Range:* ${symbol.signature}`);
-      }
-      if (displayParent) {
-        md.appendMarkdown(`\n\n*Bitmap:* ${displayParent}`);
-      }
-      break;
-
-    case "registerMember": {
-      const access = symbol.accessModifier || "rw";
-      md.appendMarkdown(`**register member** \`${displayName}\`\n\n`);
-      md.appendCodeblock(`${symbol.type || "u32"} ${access}`, "cnext");
-      md.appendMarkdown(`\n*Access:* ${getAccessDescription(access)}`);
-      if (displayParent) {
-        md.appendMarkdown(`\n\n*Register:* ${displayParent}`);
-      }
-      break;
-    }
-
-    default:
-      md.appendMarkdown(`**${symbol.kind}** \`${symbol.name}\``);
-  }
+  // Build the main content
+  buildHoverContent(md, ctx);
 
   // Add source traceability footer with clickable link
   const displayFile = sourceFile || symbol.sourceFile;
+  const lineNumber = symbol.line ?? 1;
   if (displayFile) {
     md.appendMarkdown(
-      formatSourceFooter(displayFile, symbol.line, workspaceIndex),
+      formatSourceFooter(displayFile, lineNumber, workspaceIndex),
     );
-  } else {
-    // Fallback: show just the line number if no source file is available
+  } else if (symbol.line !== undefined) {
     md.appendMarkdown(`\n\n*Line ${symbol.line}*`);
   }
 
@@ -611,21 +699,21 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       parentName = undefined;
     }
 
-    // Look for symbol in current document
+    // Look for symbol in current document using utility functions
     let symbol: ISymbolInfo | undefined;
 
     if (parentName) {
-      symbol = symbols.find((s) => s.name === word && s.parent === parentName);
+      symbol = findSymbolByName(symbols, word, parentName);
       // Also check workspace for cross-file scope members
-      if (!symbol && this.workspaceIndex) {
-        symbol = this.workspaceIndex
-          .getAllSymbols()
-          .find((s) => s.name === word && s.parent === parentName);
-      }
+      symbol ??= this.workspaceIndex
+        ? findSymbolByName(
+            this.workspaceIndex.getAllSymbols(),
+            word,
+            parentName,
+          )
+        : undefined;
     } else {
-      symbol = symbols.find((s) => s.name === word && !s.parent);
-      symbol ??= symbols.find((s) => s.fullName === word);
-      symbol ??= symbols.find((s) => s.name === word);
+      symbol = findSymbolWithFallback(symbols, word);
     }
 
     if (symbol) {

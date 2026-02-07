@@ -286,8 +286,10 @@ export default class PreviewProvider implements vscode.Disposable {
     );
 
     // Keywords (split into groups to reduce regex complexity)
-    const controlKeywords = /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto)\b/g;
-    const typeKeywords = /\b(sizeof|typedef|struct|union|enum|void|register)\b/g;
+    const controlKeywords =
+      /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto)\b/g;
+    const typeKeywords =
+      /\b(sizeof|typedef|struct|union|enum|void|register)\b/g;
     const modifierKeywords = /\b(const|volatile|static|extern|inline)\b/g;
     html = html.replaceAll(controlKeywords, '<span class="keyword">$1</span>');
     html = html.replaceAll(typeKeywords, '<span class="keyword">$1</span>');
@@ -299,10 +301,22 @@ export default class PreviewProvider implements vscode.Disposable {
     html = html.replaceAll(types, '<span class="type">$1</span>');
 
     // Numbers (split into groups to reduce regex complexity)
-    html = html.replaceAll(/\b(0[xX][0-9a-fA-F]+)\b/g, '<span class="number">$1</span>');
-    html = html.replaceAll(/\b(0[bB][01]+)\b/g, '<span class="number">$1</span>');
-    html = html.replaceAll(/\b(\d+\.\d*[fF]?)\b/g, '<span class="number">$1</span>');
-    html = html.replaceAll(/\b(\d+[uUlL]*)\b/g, '<span class="number">$1</span>');
+    html = html.replaceAll(
+      /\b(0[xX][0-9a-fA-F]+)\b/g,
+      '<span class="number">$1</span>',
+    );
+    html = html.replaceAll(
+      /\b(0[bB][01]+)\b/g,
+      '<span class="number">$1</span>',
+    );
+    html = html.replaceAll(
+      /\b(\d+\.\d*[fF]?)\b/g,
+      '<span class="number">$1</span>',
+    );
+    html = html.replaceAll(
+      /\b(\d+[uUlL]*)\b/g,
+      '<span class="number">$1</span>',
+    );
 
     // Function calls (word followed by parenthesis)
     html = html.replaceAll(
