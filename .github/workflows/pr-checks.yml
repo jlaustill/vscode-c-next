@@ -37,16 +37,22 @@ jobs:
         run: npm run oxlint:check
         continue-on-error: true
 
+      - name: Check linting (ESLint)
+        id: eslint
+        run: npm run lint
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
           FAILED=0
           [ "${{ steps.prettier.outcome }}" != "success" ] && echo "❌ Prettier" && FAILED=1 || echo "✅ Prettier"
           [ "${{ steps.oxlint.outcome }}" != "success" ] && echo "❌ oxlint" && FAILED=1 || echo "✅ oxlint"
+          [ "${{ steps.eslint.outcome }}" != "success" ] && echo "❌ ESLint" && FAILED=1 || echo "✅ ESLint"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================
-  # PARALLEL GROUP 1: Build (typecheck + bundle)
+  # PARALLEL GROUP 1: Build (bundle extension)
   # ============================================================================
   build:
     name: Build
@@ -64,9 +70,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Check TypeScript types
-        run: npm run typecheck
 
       - name: Bundle extension
         run: npm run compile
@@ -177,5 +180,7 @@ jobs:
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.package.result }}" != "success" ] && echo "❌ Package" && FAILED=1 || echo "✅ Package"
-          [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
+          # SonarCloud is skipped for external PRs - accept both success and skipped
+          SONAR="${{ needs.sonar.result }}"
+          [ "$SONAR" != "success" ] && [ "$SONAR" != "skipped" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"

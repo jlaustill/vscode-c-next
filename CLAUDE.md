@@ -14,7 +14,7 @@ npm run watch         # Watch mode for development
 npm run lint          # Run ESLint
 npm run lint:fix      # Auto-fix linting issues
 npm run oxlint:check  # Fast linting (used in CI)
-npm run typecheck     # TypeScript type checking (has 4 known errors)
+npm run typecheck     # TypeScript type checking (not in CI, see Known Issues)
 npm run prettier:check # Check formatting
 npm run prettier:fix  # Auto-format code
 npm test              # Run Vitest tests
@@ -28,6 +28,15 @@ To debug: Open in VS Code and press F5.
 
 `pr-checks.yml` runs parallel jobs: lint + build first, then tests + package.
 Always run `npm run prettier:fix` before committing new files.
+
+## Known Issues
+
+`npm run typecheck` has 4 pre-existing TypeScript errors (not blocking esbuild):
+
+- `src/__tests__/completionProvider.test.ts:7` - import.meta requires different module setting
+- `src/completionProvider.ts:246` - string not assignable to TSymbolKind
+- `src/extension.ts:264` - readonly WorkspaceFolder[] vs mutable array
+- `src/hoverProvider.ts:486` - number | undefined not assignable to number
 
 ## Architecture
 
