@@ -86,9 +86,9 @@ class CNextServerClient {
 
   private requestId = 0;
 
-  private pendingRequests: Map<number, IPendingRequest> = new Map();
+  private readonly pendingRequests: Map<number, IPendingRequest> = new Map();
 
-  private outputChannel: vscode.OutputChannel;
+  private readonly outputChannel: vscode.OutputChannel;
 
   private isStarting = false;
 

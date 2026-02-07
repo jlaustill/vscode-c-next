@@ -18,9 +18,9 @@ export default class PreviewProvider implements vscode.Disposable {
 
   private updateTimeout: NodeJS.Timeout | null = null;
 
-  private disposables: vscode.Disposable[] = [];
+  private readonly disposables: vscode.Disposable[] = [];
 
-  private statusBarItem: vscode.StatusBarItem;
+  private readonly statusBarItem: vscode.StatusBarItem;
 
   private extensionContext: CNextExtensionContext | null = null;
 

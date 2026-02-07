@@ -12,13 +12,13 @@ import { ICacheEntry, ISymbolInfo } from "./types";
  * Tracks file modification times to detect stale entries
  */
 export default class SymbolCache {
-  private cache: Map<string, ICacheEntry> = new Map();
+  private readonly cache: Map<string, ICacheEntry> = new Map();
 
   /** Time in ms before unused cache entries are cleared */
   private readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   /** Last access time for each cache entry */
-  private lastAccess: Map<string, number> = new Map();
+  private readonly lastAccess: Map<string, number> = new Map();
 
   /**
    * Get cached symbols for a file

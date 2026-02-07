@@ -501,8 +501,8 @@ function buildSymbolHover(
  */
 export default class CNextHoverProvider implements vscode.HoverProvider {
   constructor(
-    private workspaceIndex?: WorkspaceIndex,
-    private extensionContext?: CNextExtensionContext,
+    private readonly workspaceIndex?: WorkspaceIndex,
+    private readonly extensionContext?: CNextExtensionContext,
   ) {}
 
   /**

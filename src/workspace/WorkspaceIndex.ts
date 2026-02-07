@@ -27,11 +27,11 @@ import CNextServerClient from "../server/CNextServerClient";
 export default class WorkspaceIndex {
   private static instance: WorkspaceIndex | null = null;
 
-  private cache: SymbolCache;
+  private readonly cache: SymbolCache;
 
-  private headerCache: SymbolCache; // Separate cache for header files
+  private readonly headerCache: SymbolCache; // Separate cache for header files
 
-  private config: IWorkspaceConfig;
+  private readonly config: IWorkspaceConfig;
 
   private workspaceFolders: vscode.WorkspaceFolder[] = [];
 
@@ -40,10 +40,10 @@ export default class WorkspaceIndex {
   private indexing: boolean = false;
 
   /** Include resolver for header file paths */
-  private includeResolver: IncludeResolver;
+  private readonly includeResolver: IncludeResolver;
 
   /** Map of file -> included headers (dependency graph) */
-  private includeDependencies: Map<string, string[]> = new Map();
+  private readonly includeDependencies: Map<string, string[]> = new Map();
 
   /** Periodic cache cleanup interval */
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
@@ -51,7 +51,7 @@ export default class WorkspaceIndex {
   /** Debounce timer for file changes */
   private fileChangeTimer: NodeJS.Timeout | null = null;
 
-  private pendingChanges: Set<string> = new Set();
+  private readonly pendingChanges: Set<string> = new Set();
 
   /** Status bar item for showing index status */
   private statusBarItem: vscode.StatusBarItem | null = null;

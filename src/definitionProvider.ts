@@ -20,8 +20,8 @@ export default class CNextDefinitionProvider
   implements vscode.DefinitionProvider
 {
   constructor(
-    private workspaceIndex?: WorkspaceIndex,
-    private extensionContext?: CNextExtensionContext,
+    private readonly workspaceIndex?: WorkspaceIndex,
+    private readonly extensionContext?: CNextExtensionContext,
   ) {}
 
   /**

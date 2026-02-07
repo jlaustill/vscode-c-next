@@ -276,8 +276,8 @@ export default class CNextCompletionProvider
   implements vscode.CompletionItemProvider
 {
   constructor(
-    private workspaceIndex?: WorkspaceIndex,
-    private extensionContext?: CNextExtensionContext,
+    private readonly workspaceIndex?: WorkspaceIndex,
+    private readonly extensionContext?: CNextExtensionContext,
   ) {}
 
   /**
