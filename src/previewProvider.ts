@@ -235,7 +235,7 @@ export default class PreviewProvider implements vscode.Disposable {
       this.statusBarItem.tooltip = "C-Next: No errors";
       this.statusBarItem.backgroundColor = undefined;
     } else {
-      this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount !== 1 ? "s" : ""}`;
+      this.statusBarItem.text = `$(error) C-Next: ${errorCount} error${errorCount === 1 ? "" : "s"}`;
       this.statusBarItem.tooltip = "C-Next: Click to view errors";
       this.statusBarItem.backgroundColor = new vscode.ThemeColor(
         "statusBarItem.errorBackground",
@@ -249,9 +249,9 @@ export default class PreviewProvider implements vscode.Disposable {
   private highlightC(code: string): string {
     // Escape HTML first
     let html = code
-      .replaceAll(/&/g, "&amp;")
-      .replaceAll(/</g, "&lt;")
-      .replaceAll(/>/g, "&gt;");
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
 
     // Order matters - do strings/comments first to avoid highlighting inside them
 
@@ -350,7 +350,7 @@ export default class PreviewProvider implements vscode.Disposable {
                 <span class="error-icon">$(error)</span>
                 <span>Parse Error - showing last successful output</span>
                </div>
-               <pre class="error-details">${error.replaceAll(/</g, "&lt;").replaceAll(/>/g, "&gt;")}</pre>`
+               <pre class="error-details">${error.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</pre>`
       : "";
 
     return `<!DOCTYPE html>

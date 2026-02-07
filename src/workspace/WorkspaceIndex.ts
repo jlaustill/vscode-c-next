@@ -162,7 +162,7 @@ export default class WorkspaceIndex {
           await this.indexFile(vscode.Uri.file(fullPath));
         }
       }
-    } catch (_error) {
+    } catch {
       // Ignore permission errors, etc.
     }
   }
@@ -227,7 +227,7 @@ export default class WorkspaceIndex {
 
       // Store dependency graph
       this.includeDependencies.set(uri.fsPath, resolvedHeaders);
-    } catch (_error) {
+    } catch {
       // File read error or server error - skip
     }
   }
@@ -269,7 +269,7 @@ export default class WorkspaceIndex {
       }));
 
       this.headerCache.set(uri, symbolsWithFile, stat.mtimeMs, false);
-    } catch (_error) {
+    } catch {
       // Parse error or server error - skip silently
     }
   }

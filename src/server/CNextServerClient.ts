@@ -416,7 +416,7 @@ class CNextServerClient {
       } else {
         pending.resolve(response.result);
       }
-    } catch (err) {
+    } catch {
       this.outputChannel.appendLine(`Failed to parse response: ${line}`);
     }
   }

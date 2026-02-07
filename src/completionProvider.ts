@@ -394,7 +394,7 @@ export default class CNextCompletionProvider
         document,
         position,
         context,
-        chain.at(-1)!,
+        chain.at(-1),
       );
       return cppMembers;
     }
@@ -1092,8 +1092,8 @@ export default class CNextCompletionProvider
 
       // Track function entry
       if (
-        trimmed.match(
-          /^(void|int|bool|char|float|double|uint\d+_t|int\d+_t)\s+\w+\s*\([^)]*\)\s*\{?$/,
+        /^(void|int|bool|char|float|double|uint\d+_t|int\d+_t)\s+\w+\s*\([^)]*\)\s*\{?$/.test(
+          trimmed,
         )
       ) {
         inFunction = true;
