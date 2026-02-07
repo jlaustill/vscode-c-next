@@ -1115,7 +1115,7 @@ export default class CNextCompletionProvider
         !trimmed.startsWith("//")
       ) {
         // Find the indentation level
-        const indent = line.match(/^(\s+)/)?.[1].length || 4;
+        const indent = /^(\s+)/.exec(line)?.[1].length || 4;
         this.debug(
           `C-Next: Querying inside function at line ${i}, indent ${indent}: "${trimmed.substring(0, 20)}..."`,
         );

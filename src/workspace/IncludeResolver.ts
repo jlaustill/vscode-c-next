@@ -94,7 +94,7 @@ export default class IncludeResolver {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const match = line.match(/#include\s*([<"])([^>"]+)[>"]/);
+      const match = /#include\s*([<"])([^>"]+)[>"]/.exec(line);
 
       if (match) {
         includes.push({

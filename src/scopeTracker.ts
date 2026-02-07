@@ -23,7 +23,7 @@ export default class ScopeTracker {
       )
         continue;
       const clean = line.replace(/\/\/.*$/, "").replaceAll(/\/\*.*?\*\//g, "");
-      const match = clean.match(pattern);
+      const match = pattern.exec(clean);
       if (match) {
         currentName = match[1];
         blockStartDepth = braceDepth;
