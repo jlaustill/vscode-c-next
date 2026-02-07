@@ -28,24 +28,24 @@ npm install --save-dev @jlaustill/cnext
 
 ## Extension Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `cnext.serverPath` | `""` | Custom path to cnext binary (auto-detected if empty) |
-| `cnext.serverTimeout` | `30000` | Request timeout in milliseconds |
-| `cnext.transpile.generateCFile` | `true` | Auto-generate .c file alongside .cnx |
-| `cnext.transpile.updateDelay` | `500` | Delay before updating generated .c file |
-| `cnext.preview.updateDelay` | `300` | Delay before updating preview |
-| `cnext.preview.showLineNumbers` | `true` | Show line numbers in preview |
-| `cnext.includePaths` | `[]` | Additional include paths for headers |
-| `cnext.sdkIncludePaths` | `[]` | SDK include paths (e.g., Teensy, STM32) |
-| `cnext.indexing.excludePatterns` | `["**/node_modules/**", ...]` | Patterns to exclude from indexing |
+| Setting                          | Default                       | Description                                          |
+| -------------------------------- | ----------------------------- | ---------------------------------------------------- |
+| `cnext.serverPath`               | `""`                          | Custom path to cnext binary (auto-detected if empty) |
+| `cnext.serverTimeout`            | `30000`                       | Request timeout in milliseconds                      |
+| `cnext.transpile.generateCFile`  | `true`                        | Auto-generate .c file alongside .cnx                 |
+| `cnext.transpile.updateDelay`    | `500`                         | Delay before updating generated .c file              |
+| `cnext.preview.updateDelay`      | `300`                         | Delay before updating preview                        |
+| `cnext.preview.showLineNumbers`  | `true`                        | Show line numbers in preview                         |
+| `cnext.includePaths`             | `[]`                          | Additional include paths for headers                 |
+| `cnext.sdkIncludePaths`          | `[]`                          | SDK include paths (e.g., Teensy, STM32)              |
+| `cnext.indexing.excludePatterns` | `["**/node_modules/**", ...]` | Patterns to exclude from indexing                    |
 
 ## Commands
 
-| Command | Keybinding | Description |
-|---------|------------|-------------|
-| C-Next: Open Preview | `Ctrl+Shift+V` | Open C preview in current editor |
-| C-Next: Open Preview to the Side | `Ctrl+K V` | Open C preview in split view |
+| Command                          | Keybinding     | Description                      |
+| -------------------------------- | -------------- | -------------------------------- |
+| C-Next: Open Preview             | `Ctrl+Shift+V` | Open C preview in current editor |
+| C-Next: Open Preview to the Side | `Ctrl+K V`     | Open C preview in split view     |
 
 ## Architecture
 
@@ -58,6 +58,7 @@ This extension communicates with the C-Next transpiler via a JSON-RPC server (`c
 ## Graceful Degradation
 
 If the transpiler is not installed, the extension still provides:
+
 - Syntax highlighting
 - Snippets
 - Language configuration (brackets, comments)
