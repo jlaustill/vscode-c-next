@@ -250,7 +250,7 @@ function createSymbolCompletion(symbol: ISymbolInfo): vscode.CompletionItem {
   if (symbol.kind === "function" || symbol.kind === "method") {
     item.detail =
       symbol.signature || `${symbol.type || "void"} ${symbol.name}()`;
-    item.insertText = symbol.name + (symbol.kind === "function" ? "()" : "()");
+    item.insertText = symbol.name + "()";
   } else if (symbol.kind === "registerMember") {
     const access = symbol.accessModifier || "rw";
     item.detail = `${symbol.type || "u32"} ${access}`;
@@ -472,7 +472,7 @@ export default class CNextCompletionProvider
     );
 
     // Resolve each subsequent element using type-aware lookup
-    const startIndex = chain[0] === "global" ? 1 : 1;
+    const startIndex = chain[0] === "global" ? 1 : 0;
     for (let i = startIndex; i < chain.length; i++) {
       const memberName = chain[i];
       const parentToMatch = currentParent; // Capture current value for callback
