@@ -13,13 +13,21 @@ npm run compile       # Bundle TypeScript with esbuild
 npm run watch         # Watch mode for development
 npm run lint          # Run ESLint
 npm run lint:fix      # Auto-fix linting issues
+npm run oxlint:check  # Fast linting (used in CI)
+npm run typecheck     # TypeScript type checking (has 4 known errors)
 npm run prettier:check # Check formatting
 npm run prettier:fix  # Auto-format code
 npm test              # Run Vitest tests
+npm run test:coverage # Tests with v8 coverage
 npm run package       # Create .vsix package
 ```
 
 To debug: Open in VS Code and press F5.
+
+## CI Workflow
+
+`pr-checks.yml` runs parallel jobs: lint + build first, then tests + package.
+Always run `npm run prettier:fix` before committing new files.
 
 ## Architecture
 
