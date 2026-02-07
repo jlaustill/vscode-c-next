@@ -749,13 +749,13 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
         const contents = hover.contents.map((content) => {
           if (content instanceof vscode.MarkdownString) {
             const fixed = new vscode.MarkdownString(
-              content.value.replace(scopeOpRegex, "$1.$2"),
+              content.value.replaceAll(scopeOpRegex, "$1.$2"),
             );
             fixed.isTrusted = true;
             return fixed;
           }
           if (typeof content === "string") {
-            return content.replace(scopeOpRegex, "$1.$2");
+            return content.replaceAll(scopeOpRegex, "$1.$2");
           }
           return content;
         });

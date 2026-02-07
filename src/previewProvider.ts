@@ -249,35 +249,35 @@ export default class PreviewProvider implements vscode.Disposable {
   private highlightC(code: string): string {
     // Escape HTML first
     let html = code
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replaceAll(/&/g, "&amp;")
+      .replaceAll(/</g, "&lt;")
+      .replaceAll(/>/g, "&gt;");
 
     // Order matters - do strings/comments first to avoid highlighting inside them
 
     // Block comments /* */
-    html = html.replace(
+    html = html.replaceAll(
       /(\/\*[\s\S]*?\*\/)/g,
       '<span class="comment">$1</span>',
     );
 
     // Line comments //
-    html = html.replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
+    html = html.replaceAll(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
 
     // Strings
-    html = html.replace(
+    html = html.replaceAll(
       /("(?:[^"\\]|\\.)*")/g,
       '<span class="string">$1</span>',
     );
 
     // Character literals
-    html = html.replace(
+    html = html.replaceAll(
       /('(?:[^'\\]|\\.)*')/g,
       '<span class="string">$1</span>',
     );
 
     // Preprocessor directives
-    html = html.replace(
+    html = html.replaceAll(
       /^(\s*#\s*\w+)/gm,
       '<span class="preprocessor">$1</span>',
     );
@@ -285,21 +285,21 @@ export default class PreviewProvider implements vscode.Disposable {
     // Keywords
     const keywords =
       /\b(if|else|for|while|do|switch|case|default|break|continue|return|goto|sizeof|typedef|struct|union|enum|const|volatile|static|extern|inline|void|register)\b/g;
-    html = html.replace(keywords, '<span class="keyword">$1</span>');
+    html = html.replaceAll(keywords, '<span class="keyword">$1</span>');
 
     // Types
     const types =
       /\b(int|char|short|long|float|double|signed|unsigned|bool|uint8_t|uint16_t|uint32_t|uint64_t|int8_t|int16_t|int32_t|int64_t|size_t)\b/g;
-    html = html.replace(types, '<span class="type">$1</span>');
+    html = html.replaceAll(types, '<span class="type">$1</span>');
 
     // Numbers (hex, binary, decimal, float)
-    html = html.replace(
+    html = html.replaceAll(
       /\b(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+\.?\d*[fF]?|\d+[uUlL]*)\b/g,
       '<span class="number">$1</span>',
     );
 
     // Function calls (word followed by parenthesis)
-    html = html.replace(
+    html = html.replaceAll(
       /\b([a-zA-Z_]\w*)\s*(?=\()/g,
       '<span class="function">$1</span>',
     );
@@ -350,7 +350,7 @@ export default class PreviewProvider implements vscode.Disposable {
                 <span class="error-icon">$(error)</span>
                 <span>Parse Error - showing last successful output</span>
                </div>
-               <pre class="error-details">${error.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`
+               <pre class="error-details">${error.replaceAll(/</g, "&lt;").replaceAll(/>/g, "&gt;")}</pre>`
       : "";
 
     return `<!DOCTYPE html>

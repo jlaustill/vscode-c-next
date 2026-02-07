@@ -24,7 +24,7 @@ export function getCompletionLabel(
 }
 
 export function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return str.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function findOutputPath(

@@ -22,7 +22,7 @@ export default class ScopeTracker {
         trimmed.startsWith("*")
       )
         continue;
-      const clean = line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+      const clean = line.replace(/\/\/.*$/, "").replaceAll(/\/\*.*?\*\//g, "");
       const match = clean.match(pattern);
       if (match) {
         currentName = match[1];
