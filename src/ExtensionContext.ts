@@ -7,7 +7,9 @@ import CNextServerClient from "./server/CNextServerClient";
  */
 export default class CNextExtensionContext {
   readonly outputChannel: vscode.OutputChannel;
+
   readonly lastGoodOutputPath: Map<string, string> = new Map();
+
   serverClient: CNextServerClient | null = null;
 
   constructor(outputChannel: vscode.OutputChannel) {

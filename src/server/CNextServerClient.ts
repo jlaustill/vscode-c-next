@@ -81,12 +81,19 @@ interface IPendingRequest {
  */
 class CNextServerClient {
   private process: ChildProcess | null = null;
+
   private readline: Interface | null = null;
+
   private requestId = 0;
+
   private pendingRequests: Map<number, IPendingRequest> = new Map();
+
   private outputChannel: vscode.OutputChannel;
+
   private isStarting = false;
+
   private hasRestarted = false;
+
   private serverPath: string = "";
 
   constructor(outputChannel: vscode.OutputChannel) {

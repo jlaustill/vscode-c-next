@@ -11,7 +11,11 @@ import * as vscode from "vscode";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import SymbolCache from "./SymbolCache";
-import { IWorkspaceConfig, DEFAULT_WORKSPACE_CONFIG, ISymbolInfo } from "./types";
+import {
+  IWorkspaceConfig,
+  DEFAULT_WORKSPACE_CONFIG,
+  ISymbolInfo,
+} from "./types";
 import IncludeResolver from "./IncludeResolver";
 import { CACHE_CLEANUP_INTERVAL_MS } from "../utils";
 import CNextServerClient from "../server/CNextServerClient";
