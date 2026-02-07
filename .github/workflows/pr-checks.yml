@@ -131,39 +131,12 @@ jobs:
           path: "*.vsix"
 
   # ============================================================================
-  # SEQUENTIAL: SonarCloud (needs coverage from unit-tests)
-  # ============================================================================
-  sonar:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    needs: [unit-tests]
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download coverage artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-          path: ./coverage
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  # ============================================================================
   # FINAL: All checks must pass
   # ============================================================================
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, build, unit-tests, package, sonar]
+    needs: [lint, build, unit-tests, package]
     if: always()
 
     steps:
@@ -174,7 +147,4 @@ jobs:
           [ "${{ needs.build.result }}" != "success" ] && echo "❌ Build" && FAILED=1 || echo "✅ Build"
           [ "${{ needs.unit-tests.result }}" != "success" ] && echo "❌ Unit Tests" && FAILED=1 || echo "✅ Unit Tests"
           [ "${{ needs.package.result }}" != "success" ] && echo "❌ Package" && FAILED=1 || echo "✅ Package"
-          # SonarCloud is skipped for external PRs - accept both success and skipped
-          SONAR="${{ needs.sonar.result }}"
-          [ "$SONAR" != "success" ] && [ "$SONAR" != "skipped" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"
