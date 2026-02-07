@@ -1151,7 +1151,7 @@ export default class CNextCompletionProvider
     parentName: string,
   ): vscode.Position | null {
     const lines = source.split("\n");
-    const pattern = new RegExp("\\b" + escapeRegex(parentName) + "\\.");
+    const pattern = new RegExp(String.raw`\b` + escapeRegex(parentName) + String.raw`\.`);
 
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];

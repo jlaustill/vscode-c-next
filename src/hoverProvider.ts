@@ -787,7 +787,7 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];
       // Use word boundary regex to find exact word matches
-      const regex = new RegExp(`\\b${escapeRegex(word)}\\b`);
+      const regex = new RegExp(String.raw`\b${escapeRegex(word)}\b`);
       const match = regex.exec(line);
 
       if (match) {
