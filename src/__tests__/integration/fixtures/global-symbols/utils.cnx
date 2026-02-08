@@ -1,0 +1,3 @@
+u8 globalCounter;
+u16 globalThreshold;
+void resetCounters() { }

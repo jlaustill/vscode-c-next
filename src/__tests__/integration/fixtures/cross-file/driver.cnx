@@ -1,0 +1,8 @@
+scope Driver {
+  u8 status;
+  public void init() { }
+  public void start() { }
+}
+
+u8 driverVersion;
+void driverHelper() { }

@@ -1,0 +1,7 @@
+scope LED {
+  u8 pin;
+  bool state;
+  public void on() { }
+  public void off() { }
+  public void toggle() { }
+}

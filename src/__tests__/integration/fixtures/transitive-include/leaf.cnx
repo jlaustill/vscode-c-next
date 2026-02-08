@@ -1,0 +1,4 @@
+scope Leaf {
+  u8 value;
+  public void compute() { }
+}

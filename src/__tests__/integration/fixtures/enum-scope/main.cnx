@@ -1,0 +1,10 @@
+enum Color {
+  Red,
+  Green,
+  Blue
+}
+
+scope Display {
+  Color currentColor;
+  public void setColor() { }
+}
