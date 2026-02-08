@@ -189,9 +189,6 @@ function scheduleTranspileToFile(document: vscode.TextDocument): void {
   transpileTimers.set(uri, timer);
 }
 
-/** Known older extension IDs that conflict with this one */
-const CONFLICTING_EXTENSIONS = ["jlaustill.c-next"];
-
 export async function activate(
   context: vscode.ExtensionContext,
 ): Promise<void> {
@@ -202,25 +199,6 @@ export async function activate(
   context.subscriptions.push(outputChannel);
   extensionContext = new CNextExtensionContext(outputChannel);
   outputChannel.appendLine("C-Next extension activated");
-
-  // Check for conflicting extension versions
-  for (const extId of CONFLICTING_EXTENSIONS) {
-    const conflict = vscode.extensions.getExtension(extId);
-    if (conflict) {
-      const msg = `C-Next: An older version of this extension ("${extId}") is also installed. Please uninstall it to avoid conflicts.`;
-      outputChannel.appendLine(msg);
-      vscode.window
-        .showWarningMessage(msg, "Uninstall Old Version")
-        .then((choice) => {
-          if (choice === "Uninstall Old Version") {
-            vscode.commands.executeCommand(
-              "workbench.extensions.uninstallExtension",
-              extId,
-            );
-          }
-        });
-    }
-  }
 
   // Start the server client
   serverClient = new CNextServerClient(outputChannel);
@@ -293,39 +271,31 @@ export async function activate(
   context.subscriptions.push(headerWatcher);
 
   // Register preview commands
-  // Wrapped in try-catch: if an older extension version already registered
-  // these commands, we skip gracefully so the rest of activation continues.
-  try {
-    const openPreview = vscode.commands.registerCommand(
-      "cnext.openPreview",
-      () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor?.document.languageId === "cnext") {
-          previewProvider.show(editor.document, vscode.ViewColumn.Active);
-        } else {
-          vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
-        }
-      },
-    );
+  const openPreview = vscode.commands.registerCommand(
+    "cnext.openPreview",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor?.document.languageId === "cnext") {
+        previewProvider.show(editor.document, vscode.ViewColumn.Active);
+      } else {
+        vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
+      }
+    },
+  );
 
-    const openPreviewToSide = vscode.commands.registerCommand(
-      "cnext.openPreviewToSide",
-      () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor?.document.languageId === "cnext") {
-          previewProvider.show(editor.document, vscode.ViewColumn.Beside);
-        } else {
-          vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
-        }
-      },
-    );
+  const openPreviewToSide = vscode.commands.registerCommand(
+    "cnext.openPreviewToSide",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor?.document.languageId === "cnext") {
+        previewProvider.show(editor.document, vscode.ViewColumn.Beside);
+      } else {
+        vscode.window.showWarningMessage("C-Next: Open a .cnx file first");
+      }
+    },
+  );
 
-    context.subscriptions.push(openPreview, openPreviewToSide);
-  } catch {
-    outputChannel.appendLine(
-      "Preview commands already registered by another extension version",
-    );
-  }
+  context.subscriptions.push(openPreview, openPreviewToSide);
 
   // Register completion provider
   const completionProvider = vscode.languages.registerCompletionItemProvider(
@@ -349,14 +319,11 @@ export async function activate(
   );
   context.subscriptions.push(definitionProvider);
 
-  // Validate, transpile, and index on document open
+  // Validate and transpile on document open
   if (vscode.window.activeTextEditor) {
     const doc = vscode.window.activeTextEditor.document;
     validateDocument(doc);
     transpileToFile(doc); // Immediate transpile on open
-    if (doc.languageId === "cnext") {
-      workspaceIndex.getSymbolsForFileAsync(doc.uri);
-    }
   }
 
   context.subscriptions.push(
@@ -369,7 +336,6 @@ export async function activate(
           validateDocument(editor.document);
           previewProvider.onActiveEditorChange(editor);
           transpileToFile(editor.document);
-          workspaceIndex.getSymbolsForFileAsync(editor.document.uri);
           editorSwitchTimeout = null;
         }, EDITOR_SWITCH_DEBOUNCE_MS);
       }

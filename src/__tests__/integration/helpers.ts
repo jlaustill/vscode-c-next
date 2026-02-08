@@ -3,7 +3,6 @@
  * Shared infrastructure for tests that use the real cnext --serve server
  */
 
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe } from "vitest";
@@ -15,15 +14,28 @@ import type { ISymbolInfo } from "../../workspace/types";
 export const FIXTURES_DIR = path.resolve(__dirname, "fixtures");
 
 /**
+ * Resolve the absolute path to the cnext binary by scanning PATH entries.
+ * Avoids executing a bare command name via PATH (SonarCloud S4036).
+ */
+function findCnextBinary(): string | null {
+  const dirs = (process.env.PATH ?? "").split(path.delimiter);
+  for (const dir of dirs) {
+    const fullPath = path.join(dir, "cnext");
+    try {
+      fs.accessSync(fullPath, fs.constants.X_OK);
+      return fullPath;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
  * Check if the cnext binary is available on the system
  */
 export function isCnextAvailable(): boolean {
-  try {
-    execFileSync("cnext", ["--version"], { stdio: "pipe" });
-    return true;
-  } catch {
-    return false;
-  }
+  return findCnextBinary() !== null;
 }
 
 /**
