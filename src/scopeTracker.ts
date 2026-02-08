@@ -1,4 +1,48 @@
-import { isCommentLine, stripComments, trackBraces } from "./utils";
+import {
+  isCommentLine,
+  stripComments,
+  trackBraces,
+  isWordChar,
+  extractTrailingWord,
+} from "./utils";
+
+/**
+ * Match a function declaration like "public void toggle() {" or "u8 read() {"
+ * Returns the function name or null
+ *
+ * Logic:
+ * 1. Find '(' in line
+ * 2. Extract word immediately before '(' — that's the function name
+ * 3. Verify there's a return type word before the function name
+ * 4. Verify line contains '{' after the ')'
+ */
+function matchFunctionDeclaration(line: string): string | null {
+  const parenIdx = line.indexOf("(");
+  if (parenIdx === -1) return null;
+
+  // Must have '{' somewhere after the ')'
+  const closeParenIdx = line.indexOf(")", parenIdx);
+  if (closeParenIdx === -1) return null;
+  const braceIdx = line.indexOf("{", closeParenIdx);
+  if (braceIdx === -1) return null;
+
+  // Extract function name: word immediately before '('
+  const beforeParen = line.substring(0, parenIdx);
+  const funcName = extractTrailingWord(beforeParen.trimEnd());
+  if (!funcName) return null;
+
+  // There must be a return type word before the function name
+  // Find where the function name starts in the original beforeParen
+  const trimmedBefore = beforeParen.trimEnd();
+  const nameStart = trimmedBefore.length - funcName.length;
+  const beforeName = trimmedBefore.substring(0, nameStart).trimEnd();
+
+  // Check for a return type word (at least one word char before the function name)
+  if (beforeName.length === 0) return null;
+  if (!isWordChar(beforeName.codePointAt(beforeName.length - 1)!)) return null;
+
+  return funcName;
+}
 
 export default class ScopeTracker {
   /**
@@ -8,7 +52,7 @@ export default class ScopeTracker {
   private static getContext(
     source: string,
     cursorLine: number,
-    pattern: RegExp,
+    matcher: RegExp | ((line: string) => string | null),
   ): string | null {
     const lines = source.split("\n");
     let currentName: string | null = null;
@@ -30,9 +74,18 @@ export default class ScopeTracker {
       const clean = stripComments(line);
 
       // Check for context start (scope/function declaration)
-      const match = pattern.exec(clean);
-      if (match) {
-        currentName = match[1];
+      let matchedName: string | null = null;
+      if (typeof matcher === "function") {
+        matchedName = matcher(clean);
+      } else {
+        const match = matcher.exec(clean);
+        if (match) {
+          matchedName = match[1];
+        }
+      }
+
+      if (matchedName) {
+        currentName = matchedName;
         blockStartDepth = braceDepth;
         braceDepth++;
         continue;
@@ -64,7 +117,7 @@ export default class ScopeTracker {
     return ScopeTracker.getContext(
       source,
       cursorLine,
-      /(?:public\s+)?(?:\w+)\s+(\w+)\s*\([^)]*\)\s*\{/,
+      matchFunctionDeclaration,
     );
   }
 }

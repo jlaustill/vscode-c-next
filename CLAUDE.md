@@ -86,6 +86,16 @@ WorkspaceIndex uses two separate SymbolCaches:
 
 When modifying symbol resolution, ensure the correct cache is queried based on file extension. `.cnx` includes must route through `indexFile()` (not `indexHeaderFile()`). `getIncludedSymbols()` checks both caches.
 
+### ReDoS-Safe String Parsing
+
+SonarCloud rule S5852 flags regexes with nested quantifiers. Use utilities in `src/utils.ts` instead:
+
+- `extractTrailingWord(str)` — replaces `/(\w+)$/`
+- `parseMemberAccessChain(linePrefix)` — replaces `/((?:\w+\.)+)\s*(\w*)$/`
+- `stripComments(line)` — uses `indexOf`/`substring` instead of regex
+
+When adding new regexes, avoid patterns like `(\w+)+`, `(a+)+`, or `([^"\\]|\\.)*` that cause catastrophic backtracking.
+
 ### Graceful Degradation
 
 Without transpiler: syntax highlighting + snippets still work. Server crash: auto-restart once.
@@ -114,8 +124,8 @@ Integration tests use the **real `cnext --serve` server** with mocked vscode API
 The extension requires the C-Next transpiler:
 
 ```bash
-npm install -g @jlaustill/cnext       # global
-npm install --save-dev @jlaustill/cnext  # local
+npm i -g c-next                       # global
+npm i --save-dev c-next               # local
 ```
 
 Server discovery order: custom path setting → workspace `node_modules` → global PATH.

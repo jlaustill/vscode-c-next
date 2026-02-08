@@ -62,6 +62,96 @@ export const MAX_GLOBAL_COMPLETION_ITEMS = 30;
 export const MIN_PREFIX_LENGTH_FOR_CPP_QUERY = 2;
 
 // ============================================================================
+// String Parsing Utilities (ReDoS-safe replacements for regex patterns)
+// ============================================================================
+
+/**
+ * Check if a character code is a word character [a-zA-Z0-9_]
+ */
+export function isWordChar(code: number): boolean {
+  return (
+    (code >= 48 && code <= 57) || // 0-9
+    (code >= 65 && code <= 90) || // A-Z
+    (code >= 97 && code <= 122) || // a-z
+    code === 95 // _
+  );
+}
+
+/**
+ * Extract the trailing word from a string (replaces /(\w+)$/ regex)
+ * Walks backwards from end of string while characters are word chars
+ * Returns the trailing word or null if the string doesn't end with a word char
+ */
+export function extractTrailingWord(str: string): string | null {
+  let end = str.length;
+  while (end > 0 && isWordChar(str.codePointAt(end - 1)!)) {
+    end--;
+  }
+  if (end === str.length) return null;
+  return str.substring(end);
+}
+
+/**
+ * Parse a member access chain like "this.GPIO7." from the end of a line prefix
+ * Replaces /((?:\w+\.)+)\s*(\w*)$/ regex
+ *
+ * Walks backwards: extract trailing word (partial), skip whitespace,
+ * then walk through word.word. chain
+ *
+ * @returns { chain: "this.GPIO7.", partial: "pi" } or null if no chain found
+ */
+export function parseMemberAccessChain(
+  linePrefix: string,
+): { chain: string; partial: string } | null {
+  let pos = linePrefix.length;
+
+  // Step 1: Extract trailing partial word (may be empty if line ends with '.')
+  let partial = "";
+  const wordEnd = pos;
+  while (pos > 0 && isWordChar(linePrefix.codePointAt(pos - 1)!)) {
+    pos--;
+  }
+  if (pos < wordEnd) {
+    partial = linePrefix.substring(pos, wordEnd);
+  }
+
+  // Step 2: Skip optional whitespace between chain and partial
+  while (
+    pos > 0 &&
+    (linePrefix[pos - 1] === " " || linePrefix[pos - 1] === "\t")
+  ) {
+    pos--;
+  }
+
+  // Step 3: Walk backwards through word.word. chain
+  // Must end with at least one "word." segment
+  let chainEnd = pos;
+  let dotCount = 0;
+
+  while (pos > 0) {
+    // Expect a dot
+    if (linePrefix[pos - 1] !== ".") break;
+    pos--;
+    dotCount++;
+
+    // Expect a word before the dot
+    const segEnd = pos;
+    while (pos > 0 && isWordChar(linePrefix.codePointAt(pos - 1)!)) {
+      pos--;
+    }
+    if (pos === segEnd) {
+      // No word before the dot — not a valid chain
+      break;
+    }
+  }
+
+  if (dotCount === 0) return null;
+
+  const chain = linePrefix.substring(pos, chainEnd);
+  return { chain, partial };
+}
+
+// ============================================================================
 // Brace/Block Tracking Utilities
 // ============================================================================
 
@@ -70,7 +160,23 @@ export const MIN_PREFIX_LENGTH_FOR_CPP_QUERY = 2;
  * Removes both line comments (//) and block comments (/* ... *​/)
  */
 export function stripComments(line: string): string {
-  return line.replace(/\/\/.*$/, "").replaceAll(/\/\*.*?\*\//g, "");
+  // Remove block comments (/* ... */) first
+  let result = line;
+  let startIdx = result.indexOf("/*");
+  while (startIdx !== -1) {
+    const endIdx = result.indexOf("*/", startIdx + 2);
+    if (endIdx === -1) break;
+    result = result.substring(0, startIdx) + result.substring(endIdx + 2);
+    startIdx = result.indexOf("/*");
+  }
+
+  // Remove line comments (//)
+  const lineCommentIdx = result.indexOf("//");
+  if (lineCommentIdx !== -1) {
+    result = result.substring(0, lineCommentIdx);
+  }
+
+  return result;
 }
 
 /**

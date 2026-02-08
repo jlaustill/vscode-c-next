@@ -19,6 +19,8 @@ import {
   C_FUNCTION_DECLARATION_PATTERN,
   INDENTED_LINE_PATTERN,
   INDENTATION_PATTERN,
+  extractTrailingWord,
+  parseMemberAccessChain,
 } from "./utils";
 import ScopeTracker from "./scopeTracker";
 
@@ -379,17 +381,15 @@ export default class CNextCompletionProvider
 
     // Check for member access context (after a dot)
     // Captures chained access like "this.GPIO7." as well as simple "this."
-    // Pattern: capture everything before the final dot, then the partial after
-    const memberMatch = linePrefix.match(/((?:\w+\.)+)\s*(\w*)$/);
+    const memberMatch = parseMemberAccessChain(linePrefix);
     this.debug(
       `C-Next DEBUG: memberMatch result: ${memberMatch ? JSON.stringify(memberMatch) : "null"}`,
     );
 
     if (memberMatch) {
       // Parse the chain: "this.GPIO7." -> ["this", "GPIO7"]
-      const chainStr = memberMatch[1]; // e.g., "this.GPIO7."
-      const chain = chainStr.split(".").filter((s) => s.length > 0);
-      const partialMember = memberMatch[2];
+      const chain = memberMatch.chain.split(".").filter((s) => s.length > 0);
+      const partialMember = memberMatch.partial;
       this.debug(
         `C-Next DEBUG: Detected member access - chain=[${chain.join(", ")}], partial="${partialMember}"`,
       );
@@ -443,8 +443,8 @@ export default class CNextCompletionProvider
     this.debug(`C-Next: Got ${cnextCompletions.length} C-Next completions`);
 
     // Get the current word prefix for filtering C/C++ completions
-    const wordMatch = linePrefix.match(/(\w+)$/);
-    const prefix = wordMatch ? wordMatch[1].toLowerCase() : "";
+    const trailingWord = extractTrailingWord(linePrefix);
+    const prefix = trailingWord ? trailingWord.toLowerCase() : "";
     this.debug(`C-Next: Word prefix="${prefix}", length=${prefix.length}`);
 
     // Only query C/C++ if user has typed at least 2 characters (reduces noise)

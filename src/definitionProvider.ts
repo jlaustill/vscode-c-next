@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import { ISymbolInfo } from "./server/CNextServerClient";
 import WorkspaceIndex from "./workspace/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
+import { extractTrailingWord } from "./utils";
 
 /**
  * Extended symbol info that includes source file path
@@ -52,9 +53,9 @@ export default class CNextDefinitionProvider
     if (charBefore === ".") {
       // Find the word before the dot
       const beforeDot = lineText.substring(0, wordRange.start.character - 1);
-      const parentMatch = beforeDot.match(/(\w+)$/);
-      if (parentMatch) {
-        parentName = parentMatch[1];
+      const trailingWord = extractTrailingWord(beforeDot);
+      if (trailingWord) {
+        parentName = trailingWord;
       }
     }
 
