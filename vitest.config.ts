@@ -5,5 +5,8 @@ export default defineConfig({
     root: ".",
     include: ["src/**/*.test.ts"],
     globals: true,
+    coverage: {
+      reporter: ["text", "lcov", "html"],
+    },
   },
 });
