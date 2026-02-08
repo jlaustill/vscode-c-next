@@ -1,0 +1,7 @@
+#include "middle.cnx"
+
+scope Top {
+  public void run() {
+    Middle.process();
+  }
+}

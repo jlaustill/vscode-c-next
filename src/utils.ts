@@ -228,7 +228,7 @@ export function resolveChainStart(
 ): { parent: string; startIndex: number } | null {
   if (firstElement === "this") {
     if (!currentScope) return null;
-    return { parent: currentScope, startIndex: 0 };
+    return { parent: currentScope, startIndex: 1 };
   }
   if (firstElement === "global") {
     return { parent: "", startIndex: 1 };

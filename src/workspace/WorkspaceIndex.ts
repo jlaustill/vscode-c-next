@@ -169,10 +169,19 @@ export default class WorkspaceIndex {
 
   /**
    * Index a single .cnx file
+   * @param indexingStack Tracks files currently being indexed to prevent circular includes
    */
-  private async indexFile(uri: vscode.Uri): Promise<void> {
+  private async indexFile(
+    uri: vscode.Uri,
+    indexingStack?: Set<string>,
+  ): Promise<void> {
     // Check if already cached and not stale
     if (this.cache.has(uri) && !this.cache.isStale(uri)) {
+      return;
+    }
+
+    // Circular include protection
+    if (indexingStack?.has(uri.fsPath)) {
       return;
     }
 
@@ -208,9 +217,16 @@ export default class WorkspaceIndex {
 
       this.cache.set(uri, symbolsWithFile, stat.mtimeMs, !result.success);
 
-      // Extract and resolve includes, then index headers
+      // Extract and resolve includes, then index included files
       const includes = this.includeResolver.extractIncludes(source);
-      const resolvedHeaders: string[] = [];
+      const resolvedIncludes: string[] = [];
+
+      // Build indexing stack for circular include protection.
+      // The same stack is shared across sibling includes so we detect
+      // circular dependencies across the entire include tree, not just
+      // direct parent chains (e.g., A→B→C→A is caught even from A's perspective).
+      const stack = indexingStack ?? new Set<string>();
+      stack.add(uri.fsPath);
 
       for (const inc of includes) {
         const resolvedPath = this.includeResolver.resolve(
@@ -219,16 +235,20 @@ export default class WorkspaceIndex {
           inc.isSystem,
         );
         if (resolvedPath) {
-          resolvedHeaders.push(resolvedPath);
-          // Index the header file
-          await this.indexHeaderFile(vscode.Uri.file(resolvedPath));
+          resolvedIncludes.push(resolvedPath);
+          // Route .cnx includes through indexFile, others through indexHeaderFile
+          if (resolvedPath.endsWith(".cnx")) {
+            await this.indexFile(vscode.Uri.file(resolvedPath), stack);
+          } else {
+            await this.indexHeaderFile(vscode.Uri.file(resolvedPath));
+          }
         }
       }
 
       // Store dependency graph
-      this.includeDependencies.set(uri.fsPath, resolvedHeaders);
+      this.includeDependencies.set(uri.fsPath, resolvedIncludes);
     } catch {
-      // File read error or server error - skip
+      // Parse error or file read error - skip silently
     }
   }
 
@@ -326,16 +346,23 @@ export default class WorkspaceIndex {
   }
 
   /**
-   * Get all symbols from headers included by a file
+   * Get all symbols from files directly included by a file.
+   * Note: Only returns symbols from direct includes, not transitive
+   * (A includes B includes C — A won't see C's symbols). This is
+   * sufficient for typical C-Next projects with shallow include trees.
    * @param uri The source file to check includes for
    */
   getIncludedSymbols(uri: vscode.Uri): ISymbolInfo[] {
-    const includedHeaders = this.includeDependencies.get(uri.fsPath) || [];
+    const includedPaths = this.includeDependencies.get(uri.fsPath) || [];
     const symbols: ISymbolInfo[] = [];
 
-    for (const headerPath of includedHeaders) {
-      const headerUri = vscode.Uri.file(headerPath);
-      const entry = this.headerCache.get(headerUri);
+    for (const includedPath of includedPaths) {
+      const includedUri = vscode.Uri.file(includedPath);
+      // .cnx includes are stored in the main cache, others in headerCache
+      const targetCache = includedPath.endsWith(".cnx")
+        ? this.cache
+        : this.headerCache;
+      const entry = targetCache.get(includedUri);
       if (entry) {
         symbols.push(...entry.symbols);
       }
@@ -350,7 +377,8 @@ export default class WorkspaceIndex {
    */
   async getSymbolsForFileAsync(uri: vscode.Uri): Promise<ISymbolInfo[]> {
     // Ensure file is indexed
-    if (!this.cache.has(uri) || this.cache.isStale(uri)) {
+    const needsIndex = !this.cache.has(uri) || this.cache.isStale(uri);
+    if (needsIndex) {
       await this.indexFile(uri);
     }
 
@@ -399,6 +427,8 @@ export default class WorkspaceIndex {
     if (filePath.endsWith(".cnx")) {
       this.cache.invalidate(uri);
       this.includeDependencies.delete(filePath);
+      // Invalidate any files that included this .cnx file
+      this.invalidateDependentFiles(filePath);
     } else if (filePath.endsWith(".h") || filePath.endsWith(".c")) {
       this.headerCache.invalidate(uri);
       // Invalidate any .cnx files that included this header
@@ -439,6 +469,8 @@ export default class WorkspaceIndex {
 
       if (filePath.endsWith(".cnx")) {
         this.cache.invalidate(uri);
+        // Invalidate any files that included this .cnx file
+        this.invalidateDependentFiles(filePath);
         this.indexFile(uri);
       } else if (filePath.endsWith(".h") || filePath.endsWith(".c")) {
         this.headerCache.invalidate(uri);

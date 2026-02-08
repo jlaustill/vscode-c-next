@@ -1,0 +1,7 @@
+#include "driver.cnx"
+
+scope App {
+  public void setup() {
+    Driver.init();
+  }
+}

@@ -1,0 +1,7 @@
+#include "leaf.cnx"
+
+scope Middle {
+  public void process() {
+    Leaf.compute();
+  }
+}

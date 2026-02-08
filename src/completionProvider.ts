@@ -26,7 +26,7 @@ import ScopeTracker from "./scopeTracker";
  * Symbol kind type for completion mapping
  * Mirrors TSymbolKind from the transpiler but defined locally to avoid direct import
  */
-type TSymbolKind =
+export type TSymbolKind =
   | "namespace"
   | "scope"
   | "class"
@@ -224,7 +224,9 @@ const ARDUINO_GLOBALS: Array<{
 /**
  * Map symbol kind to VS Code completion item kind
  */
-function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
+export function mapToCompletionKind(
+  kind: TSymbolKind,
+): vscode.CompletionItemKind {
   switch (kind) {
     case "namespace":
       return vscode.CompletionItemKind.Module;
@@ -238,8 +240,20 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
     case "variable":
     case "field":
       return vscode.CompletionItemKind.Variable;
+    case "scope":
+    case "class":
+      return vscode.CompletionItemKind.Module;
+    case "enum":
+      return vscode.CompletionItemKind.Enum;
+    case "enumMember":
+      return vscode.CompletionItemKind.EnumMember;
+    case "bitmap":
+      return vscode.CompletionItemKind.Struct;
+    case "bitmapField":
     case "registerMember":
       return vscode.CompletionItemKind.Field;
+    case "callback":
+      return vscode.CompletionItemKind.Function;
     default:
       return vscode.CompletionItemKind.Text;
   }
@@ -357,6 +371,12 @@ export default class CNextCompletionProvider
       `C-Next DEBUG: Current function at cursor: ${currentFunction ?? "none"}`,
     );
 
+    // Ensure current file is indexed for cross-file include resolution.
+    // This populates includeDependencies so getIncludedSymbols() works.
+    if (this.workspaceIndex) {
+      await this.workspaceIndex.getSymbolsForFileAsync(document.uri);
+    }
+
     // Check for member access context (after a dot)
     // Captures chained access like "this.GPIO7." as well as simple "this."
     // Pattern: capture everything before the final dot, then the partial after
@@ -380,6 +400,7 @@ export default class CNextCompletionProvider
         chain,
         currentScope,
         currentFunction,
+        document.uri,
       );
       this.debug(
         `C-Next DEBUG: getMemberCompletions returned ${cnextMembers.length} items`,
@@ -526,7 +547,17 @@ export default class CNextCompletionProvider
     chain: string[],
     currentScope: string | null,
     currentFunction: string | null,
+    documentUri?: vscode.Uri,
   ): vscode.CompletionItem[] {
+    // Merge symbols from included files for cross-file member access
+    if (this.workspaceIndex && documentUri) {
+      const includedSymbols =
+        this.workspaceIndex.getIncludedSymbols(documentUri);
+      if (includedSymbols.length > 0) {
+        symbols = [...symbols, ...includedSymbols];
+      }
+    }
+
     this.debug(
       `C-Next DEBUG: getMemberCompletions called with chain=[${chain.join(", ")}], currentScope="${currentScope}", currentFunction="${currentFunction}"`,
     );
@@ -546,87 +577,130 @@ export default class CNextCompletionProvider
 
     // Handle single-element chains (simple member access)
     if (chain.length === 1) {
-      const parentName = chain[0];
-
-      // Handle special keyword: this
-      if (parentName === "this") {
-        if (!currentScope) {
-          this.debug(
-            'C-Next DEBUG: "this." used outside of scope - no completions',
-          );
-          return [];
-        }
-        this.debug(
-          `C-Next DEBUG: "this." resolving to scope "${currentScope}"`,
-        );
-
-        // Find all symbols that belong to the current scope
-        // Filter out the current function (no recursion allowed)
-        const scopeMembers = symbols.filter(
-          (s) =>
-            s.parent === currentScope &&
-            !(s.kind === "function" && s.name === currentFunction),
-        );
-        this.debug(
-          `C-Next DEBUG: Found ${scopeMembers.length} members for scope "${currentScope}"`,
-        );
-        scopeMembers.forEach((s) =>
-          this.debug(
-            `C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`,
-          ),
-        );
-        return scopeMembers.map(createSymbolCompletion);
-      }
-
-      // Handle special keyword: global
-      if (parentName === "global") {
-        this.debug('C-Next DEBUG: "global." showing top-level symbols');
-
-        // Find all top-level symbols (no parent, excluding scope definitions themselves)
-        // Also filter out current function if at global level
-        const globalSymbols = symbols.filter(
-          (s) =>
-            !s.parent &&
-            s.kind !== "namespace" &&
-            !(s.kind === "function" && s.name === currentFunction),
-        );
-        this.debug(
-          `C-Next DEBUG: Found ${globalSymbols.length} global symbols`,
-        );
-        globalSymbols.forEach((s) =>
-          this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
-        );
-        return globalSymbols.map(createSymbolCompletion);
-      }
-
-      // Regular member access: find all symbols with this parent
-      const members = symbols.filter((s) => s.parent === parentName);
-      this.debug(
-        `C-Next DEBUG: Found ${members.length} members with parent="${parentName}"`,
+      return this.getSingleElementCompletions(
+        symbols,
+        chain[0],
+        currentScope,
+        currentFunction,
       );
-
-      if (members.length > 0) {
-        return members.map(createSymbolCompletion);
-      }
-
-      // Check if parentName is a known namespace/class/register
-      const parentSymbol = symbols.find(
-        (s) => s.name === parentName && !s.parent,
-      );
-      if (parentSymbol) {
-        const memberSymbols = symbols.filter((s) => s.parent === parentName);
-        this.debug(
-          `C-Next DEBUG: Found parent symbol "${parentName}", ${memberSymbols.length} members`,
-        );
-        return memberSymbols.map(createSymbolCompletion);
-      }
-
-      this.debug(`C-Next DEBUG: No members found for parent="${parentName}"`);
-      return [];
     }
 
     // Handle chained access (e.g., this.GPIO7.)
-    // Resolve the chain to a fully qualified parent name
+    return this.getChainedCompletions(chain, currentScope, symbols);
+  }
+
+  /**
+   * Handle single-element member access: this., global., or ScopeName.
+   */
+  private getSingleElementCompletions(
+    symbols: ISymbolInfo[],
+    parentName: string,
+    currentScope: string | null,
+    currentFunction: string | null,
+  ): vscode.CompletionItem[] {
+    if (parentName === "this") {
+      return this.getThisCompletions(symbols, currentScope, currentFunction);
+    }
+
+    if (parentName === "global") {
+      return this.getGlobalDotCompletions(symbols, currentFunction);
+    }
+
+    return this.getNamedMemberCompletions(symbols, parentName);
+  }
+
+  /**
+   * Handle this. — returns members of the current scope
+   */
+  private getThisCompletions(
+    symbols: ISymbolInfo[],
+    currentScope: string | null,
+    currentFunction: string | null,
+  ): vscode.CompletionItem[] {
+    if (!currentScope) {
+      this.debug(
+        'C-Next DEBUG: "this." used outside of scope - no completions',
+      );
+      return [];
+    }
+    this.debug(`C-Next DEBUG: "this." resolving to scope "${currentScope}"`);
+
+    const scopeMembers = symbols.filter(
+      (s) =>
+        s.parent === currentScope &&
+        !(s.kind === "function" && s.name === currentFunction),
+    );
+    this.debug(
+      `C-Next DEBUG: Found ${scopeMembers.length} members for scope "${currentScope}"`,
+    );
+    scopeMembers.forEach((s) =>
+      this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind}, parent=${s.parent})`),
+    );
+    return scopeMembers.map(createSymbolCompletion);
+  }
+
+  /**
+   * Handle global. — returns top-level symbols (no parent, no namespaces)
+   */
+  private getGlobalDotCompletions(
+    symbols: ISymbolInfo[],
+    currentFunction: string | null,
+  ): vscode.CompletionItem[] {
+    this.debug('C-Next DEBUG: "global." showing top-level symbols');
+
+    const globalSymbols = symbols.filter(
+      (s) =>
+        !s.parent &&
+        s.kind !== "namespace" &&
+        !(s.kind === "function" && s.name === currentFunction),
+    );
+    this.debug(`C-Next DEBUG: Found ${globalSymbols.length} global symbols`);
+    globalSymbols.forEach((s) =>
+      this.debug(`C-Next DEBUG:   - ${s.name} (${s.kind})`),
+    );
+    return globalSymbols.map(createSymbolCompletion);
+  }
+
+  /**
+   * Handle ScopeName. — returns members with matching parent
+   */
+  private getNamedMemberCompletions(
+    symbols: ISymbolInfo[],
+    parentName: string,
+  ): vscode.CompletionItem[] {
+    const members = symbols.filter((s) => s.parent === parentName);
+    this.debug(
+      `C-Next DEBUG: Found ${members.length} members with parent="${parentName}"`,
+    );
+
+    if (members.length > 0) {
+      return members.map(createSymbolCompletion);
+    }
+
+    // Check if parentName is a known namespace/class/register
+    const parentSymbol = symbols.find(
+      (s) => s.name === parentName && !s.parent,
+    );
+    if (parentSymbol) {
+      const memberSymbols = symbols.filter((s) => s.parent === parentName);
+      this.debug(
+        `C-Next DEBUG: Found parent symbol "${parentName}", ${memberSymbols.length} members`,
+      );
+      return memberSymbols.map(createSymbolCompletion);
+    }
+
+    this.debug(`C-Next DEBUG: No members found for parent="${parentName}"`);
+    return [];
+  }
+
+  /**
+   * Handle chained access (e.g., this.GPIO7.) via type-aware resolution
+   */
+  private getChainedCompletions(
+    chain: string[],
+    currentScope: string | null,
+    symbols: ISymbolInfo[],
+  ): vscode.CompletionItem[] {
     const resolvedParent = this.resolveChainedAccess(
       chain,
       currentScope,
@@ -641,7 +715,6 @@ export default class CNextCompletionProvider
       `C-Next DEBUG: Looking for members with parent="${resolvedParent}"`,
     );
 
-    // Find all symbols with the resolved parent
     const members = symbols.filter((s) => s.parent === resolvedParent);
     this.debug(
       `C-Next DEBUG: Found ${members.length} members for resolved parent "${resolvedParent}"`,
