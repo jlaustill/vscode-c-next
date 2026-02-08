@@ -26,7 +26,7 @@ import ScopeTracker from "./scopeTracker";
  * Symbol kind type for completion mapping
  * Mirrors TSymbolKind from the transpiler but defined locally to avoid direct import
  */
-type TSymbolKind =
+export type TSymbolKind =
   | "namespace"
   | "scope"
   | "class"
@@ -224,7 +224,9 @@ const ARDUINO_GLOBALS: Array<{
 /**
  * Map symbol kind to VS Code completion item kind
  */
-function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
+export function mapToCompletionKind(
+  kind: TSymbolKind,
+): vscode.CompletionItemKind {
   switch (kind) {
     case "namespace":
       return vscode.CompletionItemKind.Module;

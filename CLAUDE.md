@@ -80,6 +80,7 @@ VS Code marketplace requires PNG icons - `images/icon.png` (not SVG).
 ### Dual-Cache Symbol Architecture
 
 WorkspaceIndex uses two separate SymbolCaches:
+
 - `cache` — `.cnx` files (parsed via `parseSymbols()`)
 - `headerCache` — C/C++ headers (parsed via `parseCHeader()`)
 

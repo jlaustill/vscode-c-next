@@ -221,7 +221,10 @@ export default class WorkspaceIndex {
       const includes = this.includeResolver.extractIncludes(source);
       const resolvedIncludes: string[] = [];
 
-      // Build indexing stack for circular include protection
+      // Build indexing stack for circular include protection.
+      // The same stack is shared across sibling includes so we detect
+      // circular dependencies across the entire include tree, not just
+      // direct parent chains (e.g., A→B→C→A is caught even from A's perspective).
       const stack = indexingStack ?? new Set<string>();
       stack.add(uri.fsPath);
 
@@ -343,7 +346,10 @@ export default class WorkspaceIndex {
   }
 
   /**
-   * Get all symbols from headers included by a file
+   * Get all symbols from files directly included by a file.
+   * Note: Only returns symbols from direct includes, not transitive
+   * (A includes B includes C — A won't see C's symbols). This is
+   * sufficient for typical C-Next projects with shallow include trees.
    * @param uri The source file to check includes for
    */
   getIncludedSymbols(uri: vscode.Uri): ISymbolInfo[] {
