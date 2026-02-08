@@ -371,6 +371,12 @@ export default class CNextCompletionProvider
       `C-Next DEBUG: Current function at cursor: ${currentFunction ?? "none"}`,
     );
 
+    // Ensure current file is indexed for cross-file include resolution.
+    // This populates includeDependencies so getIncludedSymbols() works.
+    if (this.workspaceIndex) {
+      await this.workspaceIndex.getSymbolsForFileAsync(document.uri);
+    }
+
     // Check for member access context (after a dot)
     // Captures chained access like "this.GPIO7." as well as simple "this."
     // Pattern: capture everything before the final dot, then the partial after

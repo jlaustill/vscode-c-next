@@ -248,7 +248,7 @@ export default class WorkspaceIndex {
       // Store dependency graph
       this.includeDependencies.set(uri.fsPath, resolvedIncludes);
     } catch {
-      // File read error or server error - skip
+      // Parse error or file read error - skip silently
     }
   }
 
@@ -377,7 +377,8 @@ export default class WorkspaceIndex {
    */
   async getSymbolsForFileAsync(uri: vscode.Uri): Promise<ISymbolInfo[]> {
     // Ensure file is indexed
-    if (!this.cache.has(uri) || this.cache.isStale(uri)) {
+    const needsIndex = !this.cache.has(uri) || this.cache.isStale(uri);
+    if (needsIndex) {
       await this.indexFile(uri);
     }
 

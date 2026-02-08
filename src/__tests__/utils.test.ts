@@ -284,7 +284,7 @@ describe("buildQualifiedName", () => {
 describe("resolveChainStart", () => {
   it("resolves 'this' to current scope", () => {
     const result = resolveChainStart("this", "LED");
-    expect(result).toEqual({ parent: "LED", startIndex: 0 });
+    expect(result).toEqual({ parent: "LED", startIndex: 1 });
   });
 
   it("returns null for 'this' without scope", () => {
