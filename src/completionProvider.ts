@@ -238,8 +238,20 @@ function mapToCompletionKind(kind: TSymbolKind): vscode.CompletionItemKind {
     case "variable":
     case "field":
       return vscode.CompletionItemKind.Variable;
+    case "scope":
+    case "class":
+      return vscode.CompletionItemKind.Module;
+    case "enum":
+      return vscode.CompletionItemKind.Enum;
+    case "enumMember":
+      return vscode.CompletionItemKind.EnumMember;
+    case "bitmap":
+      return vscode.CompletionItemKind.Struct;
+    case "bitmapField":
     case "registerMember":
       return vscode.CompletionItemKind.Field;
+    case "callback":
+      return vscode.CompletionItemKind.Function;
     default:
       return vscode.CompletionItemKind.Text;
   }
@@ -380,6 +392,7 @@ export default class CNextCompletionProvider
         chain,
         currentScope,
         currentFunction,
+        document.uri,
       );
       this.debug(
         `C-Next DEBUG: getMemberCompletions returned ${cnextMembers.length} items`,
@@ -526,7 +539,17 @@ export default class CNextCompletionProvider
     chain: string[],
     currentScope: string | null,
     currentFunction: string | null,
+    documentUri?: vscode.Uri,
   ): vscode.CompletionItem[] {
+    // Merge symbols from included files for cross-file member access
+    if (this.workspaceIndex && documentUri) {
+      const includedSymbols =
+        this.workspaceIndex.getIncludedSymbols(documentUri);
+      if (includedSymbols.length > 0) {
+        symbols = [...symbols, ...includedSymbols];
+      }
+    }
+
     this.debug(
       `C-Next DEBUG: getMemberCompletions called with chain=[${chain.join(", ")}], currentScope="${currentScope}", currentFunction="${currentFunction}"`,
     );

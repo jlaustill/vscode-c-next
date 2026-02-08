@@ -77,6 +77,14 @@ VS Code marketplace requires PNG icons - `images/icon.png` (not SVG).
 - **Indexing**: `serverClient.parseSymbols()` → stores in SymbolCache
 - **Preview**: Debounced 300ms → shows transpiled C in webview
 
+### Dual-Cache Symbol Architecture
+
+WorkspaceIndex uses two separate SymbolCaches:
+- `cache` — `.cnx` files (parsed via `parseSymbols()`)
+- `headerCache` — C/C++ headers (parsed via `parseCHeader()`)
+
+When modifying symbol resolution, ensure the correct cache is queried based on file extension. `.cnx` includes must route through `indexFile()` (not `indexHeaderFile()`). `getIncludedSymbols()` checks both caches.
+
 ### Graceful Degradation
 
 Without transpiler: syntax highlighting + snippets still work. Server crash: auto-restart once.
