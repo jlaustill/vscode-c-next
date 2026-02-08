@@ -92,11 +92,22 @@ Without transpiler: syntax highlighting + snippets still work. Server crash: aut
 
 ## Testing
 
-Tests are in `src/__tests__/*.test.ts`. Run single test file:
+Unit tests are in `src/__tests__/*.test.ts`. Integration tests are in `src/__tests__/integration/`.
 
 ```bash
-npx vitest run src/__tests__/utils.test.ts
+npm test                # All tests (unit + integration)
+npm run test:unit       # Unit tests only
+npm run test:integration # Integration tests only
+npx vitest run src/__tests__/utils.test.ts  # Single file
 ```
+
+### Integration Tests
+
+Integration tests use the **real `cnext --serve` server** with mocked vscode API. They auto-skip via `describeIntegration` when the `cnext` binary is unavailable.
+
+**Gotcha:** `cnext` checks `process.env.VITEST` and exits early when set. Integration tests must clear VITEST env vars before spawning the server — see `helpers.ts:startServerClient()`.
+
+3-layer architecture: ServerClient (parsing) → WorkspaceIndex (indexing/includes) → CompletionFlow (end-to-end completions). Fixture `.cnx` files live in `src/__tests__/integration/fixtures/`.
 
 ## C-Next Transpiler
 
