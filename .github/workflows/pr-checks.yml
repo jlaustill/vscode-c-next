@@ -92,7 +92,7 @@ jobs:
         run: npm ci
 
       - name: Install cnext transpiler
-        run: npm install -g @jlaustill/cnext
+        run: npm i -g c-next
 
       - name: Run tests with coverage
         run: npm run test:coverage
