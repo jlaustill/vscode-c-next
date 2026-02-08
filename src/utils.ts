@@ -84,7 +84,7 @@ export function isWordChar(code: number): boolean {
  */
 export function extractTrailingWord(str: string): string | null {
   let end = str.length;
-  while (end > 0 && isWordChar(str.charCodeAt(end - 1))) {
+  while (end > 0 && isWordChar(str.codePointAt(end - 1)!)) {
     end--;
   }
   if (end === str.length) return null;
@@ -108,7 +108,7 @@ export function parseMemberAccessChain(
   // Step 1: Extract trailing partial word (may be empty if line ends with '.')
   let partial = "";
   const wordEnd = pos;
-  while (pos > 0 && isWordChar(linePrefix.charCodeAt(pos - 1))) {
+  while (pos > 0 && isWordChar(linePrefix.codePointAt(pos - 1)!)) {
     pos--;
   }
   if (pos < wordEnd) {
@@ -136,7 +136,7 @@ export function parseMemberAccessChain(
 
     // Expect a word before the dot
     const segEnd = pos;
-    while (pos > 0 && isWordChar(linePrefix.charCodeAt(pos - 1))) {
+    while (pos > 0 && isWordChar(linePrefix.codePointAt(pos - 1)!)) {
       pos--;
     }
     if (pos === segEnd) {

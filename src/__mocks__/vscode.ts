@@ -477,15 +477,14 @@ export function createMockTextDocument(options: {
     },
     getWordRangeAtPosition: (
       position: Position,
-      regex?: RegExp,
+      regex: RegExp = /\w+/g,
     ): Range | undefined => {
       const line = lines[position.line];
       if (!line) return undefined;
       // Ensure the pattern has the global flag to prevent infinite loops with RegExp exec()
-      const basePattern = regex ?? /\w+/g;
-      const pattern = basePattern.global
-        ? basePattern
-        : new RegExp(basePattern.source, basePattern.flags + "g");
+      const pattern = regex.global
+        ? regex
+        : new RegExp(regex.source, regex.flags + "g");
       let match;
       while ((match = pattern.exec(line)) !== null) {
         const start = match.index;

@@ -39,7 +39,7 @@ function matchFunctionDeclaration(line: string): string | null {
 
   // Check for a return type word (at least one word char before the function name)
   if (beforeName.length === 0) return null;
-  if (!isWordChar(beforeName.charCodeAt(beforeName.length - 1))) return null;
+  if (!isWordChar(beforeName.codePointAt(beforeName.length - 1)!)) return null;
 
   return funcName;
 }

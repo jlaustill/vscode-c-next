@@ -506,4 +506,10 @@ describe("parseMemberAccessChain", () => {
     const result = parseMemberAccessChain("this.GPIO7. pi");
     expect(result).toEqual({ chain: "this.GPIO7.", partial: "pi" });
   });
+
+  it("handles leading dot without word before it", () => {
+    // The dot is counted but has no word segment — chain is just "."
+    const result = parseMemberAccessChain(".field");
+    expect(result).toEqual({ chain: ".", partial: "field" });
+  });
 });

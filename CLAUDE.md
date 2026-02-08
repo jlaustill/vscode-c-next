@@ -89,6 +89,7 @@ When modifying symbol resolution, ensure the correct cache is queried based on f
 ### ReDoS-Safe String Parsing
 
 SonarCloud rule S5852 flags regexes with nested quantifiers. Use utilities in `src/utils.ts` instead:
+
 - `extractTrailingWord(str)` — replaces `/(\w+)$/`
 - `parseMemberAccessChain(linePrefix)` — replaces `/((?:\w+\.)+)\s*(\w*)$/`
 - `stripComments(line)` — uses `indexOf`/`substring` instead of regex
