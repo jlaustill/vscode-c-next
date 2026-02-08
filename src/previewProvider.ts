@@ -247,6 +247,91 @@ export default class PreviewProvider implements vscode.Disposable {
   }
 
   /**
+   * Highlight line comments (// ...) in HTML-escaped text
+   * Replaces /(\/\/.*$)/gm with string scanning
+   */
+  private highlightLineComments(html: string): string {
+    const lines = html.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const idx = lines[i].indexOf("//");
+      if (idx !== -1) {
+        const before = lines[i].substring(0, idx);
+        const comment = lines[i].substring(idx);
+        lines[i] = `${before}<span class="comment">${comment}</span>`;
+      }
+    }
+    return lines.join("\n");
+  }
+
+  /**
+   * Highlight quoted strings or char literals in HTML-escaped text
+   * Replaces /("(?:[^"\\]|\\.)*")/g and /('(?:[^'\\]|\\.)*')/g
+   * with a character scanner that handles escape sequences
+   */
+  private highlightQuotedStrings(
+    html: string,
+    quote: string,
+    className: string,
+  ): string {
+    let result = "";
+    let i = 0;
+    while (i < html.length) {
+      if (html[i] === quote) {
+        // Found opening quote — scan for matching close
+        let j = i + 1;
+        while (j < html.length) {
+          if (html[j] === "\\") {
+            j += 2; // skip escape sequence
+          } else if (html[j] === quote) {
+            j++; // include closing quote
+            break;
+          } else {
+            j++;
+          }
+        }
+        const matched = html.substring(i, j);
+        result += `<span class="${className}">${matched}</span>`;
+        i = j;
+      } else {
+        result += html[i];
+        i++;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Highlight preprocessor directives in HTML-escaped text
+   * Replaces /^(\s*#\s*\w+)/gm with string scanning
+   */
+  private highlightPreprocessor(html: string): string {
+    const lines = html.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trimStart();
+      if (trimmed.startsWith("#")) {
+        // Find the directive word after # (skip whitespace)
+        const leadingSpaces = lines[i].length - trimmed.length;
+        let pos = leadingSpaces + 1; // skip #
+        // Skip whitespace after #
+        while (pos < lines[i].length && lines[i][pos] === " ") {
+          pos++;
+        }
+        // Find end of directive word
+        const wordStart = pos;
+        while (pos < lines[i].length && /[a-zA-Z_]/.test(lines[i][pos])) {
+          pos++;
+        }
+        if (pos > wordStart) {
+          const directive = lines[i].substring(0, pos);
+          const rest = lines[i].substring(pos);
+          lines[i] = `<span class="preprocessor">${directive}</span>${rest}`;
+        }
+      }
+    }
+    return lines.join("\n");
+  }
+
+  /**
    * Apply simple C syntax highlighting
    */
   private highlightC(code: string): string {
@@ -265,25 +350,16 @@ export default class PreviewProvider implements vscode.Disposable {
     );
 
     // Line comments //
-    html = html.replaceAll(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
+    html = this.highlightLineComments(html);
 
     // Strings
-    html = html.replaceAll(
-      /("(?:[^"\\]|\\.)*")/g,
-      '<span class="string">$1</span>',
-    );
+    html = this.highlightQuotedStrings(html, '"', "string");
 
     // Character literals
-    html = html.replaceAll(
-      /('(?:[^'\\]|\\.)*')/g,
-      '<span class="string">$1</span>',
-    );
+    html = this.highlightQuotedStrings(html, "'", "string");
 
     // Preprocessor directives
-    html = html.replaceAll(
-      /^(\s*#\s*\w+)/gm,
-      '<span class="preprocessor">$1</span>',
-    );
+    html = this.highlightPreprocessor(html);
 
     // Keywords (split into groups to reduce regex complexity)
     const controlKeywords =

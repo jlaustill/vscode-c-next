@@ -14,6 +14,9 @@ import {
   buildQualifiedName,
   resolveChainStart,
   resolveNextParent,
+  isWordChar,
+  extractTrailingWord,
+  parseMemberAccessChain,
   type IMinimalSymbol,
 } from "../utils";
 
@@ -404,5 +407,103 @@ describe("resolveNextParent", () => {
     expect(resolveNextParent(symbol, "reg", "pins", "Scope", [])).toBe(
       "Scope_UnknownType",
     );
+  });
+});
+
+// ============================================================================
+// String Parsing Utilities (ReDoS-safe)
+// ============================================================================
+
+describe("isWordChar", () => {
+  it("returns true for letters", () => {
+    expect(isWordChar("a".charCodeAt(0))).toBe(true);
+    expect(isWordChar("z".charCodeAt(0))).toBe(true);
+    expect(isWordChar("A".charCodeAt(0))).toBe(true);
+    expect(isWordChar("Z".charCodeAt(0))).toBe(true);
+  });
+
+  it("returns true for digits", () => {
+    expect(isWordChar("0".charCodeAt(0))).toBe(true);
+    expect(isWordChar("9".charCodeAt(0))).toBe(true);
+  });
+
+  it("returns true for underscore", () => {
+    expect(isWordChar("_".charCodeAt(0))).toBe(true);
+  });
+
+  it("returns false for non-word characters", () => {
+    expect(isWordChar(".".charCodeAt(0))).toBe(false);
+    expect(isWordChar(" ".charCodeAt(0))).toBe(false);
+    expect(isWordChar("-".charCodeAt(0))).toBe(false);
+    expect(isWordChar("(".charCodeAt(0))).toBe(false);
+    expect(isWordChar("+".charCodeAt(0))).toBe(false);
+  });
+});
+
+describe("extractTrailingWord", () => {
+  it("extracts trailing word from string", () => {
+    expect(extractTrailingWord("hello.world")).toBe("world");
+    expect(extractTrailingWord("  myVar")).toBe("myVar");
+    expect(extractTrailingWord("x = counter")).toBe("counter");
+  });
+
+  it("returns the entire string if all word chars", () => {
+    expect(extractTrailingWord("myVariable")).toBe("myVariable");
+    expect(extractTrailingWord("_private")).toBe("_private");
+  });
+
+  it("returns null if string does not end with a word char", () => {
+    expect(extractTrailingWord("hello.")).toBeNull();
+    expect(extractTrailingWord("  ")).toBeNull();
+    expect(extractTrailingWord("")).toBeNull();
+    expect(extractTrailingWord("foo(")).toBeNull();
+  });
+
+  it("handles underscores and digits", () => {
+    expect(extractTrailingWord("x.my_var2")).toBe("my_var2");
+    expect(extractTrailingWord("prefix_123")).toBe("prefix_123");
+  });
+});
+
+describe("parseMemberAccessChain", () => {
+  it("parses simple member access", () => {
+    const result = parseMemberAccessChain("this.");
+    expect(result).toEqual({ chain: "this.", partial: "" });
+  });
+
+  it("parses member access with partial", () => {
+    const result = parseMemberAccessChain("this.pi");
+    expect(result).toEqual({ chain: "this.", partial: "pi" });
+  });
+
+  it("parses chained access", () => {
+    const result = parseMemberAccessChain("this.GPIO7.");
+    expect(result).toEqual({ chain: "this.GPIO7.", partial: "" });
+  });
+
+  it("parses chained access with partial", () => {
+    const result = parseMemberAccessChain("this.GPIO7.pi");
+    expect(result).toEqual({ chain: "this.GPIO7.", partial: "pi" });
+  });
+
+  it("parses named scope access", () => {
+    const result = parseMemberAccessChain("LED.toggle");
+    expect(result).toEqual({ chain: "LED.", partial: "toggle" });
+  });
+
+  it("returns null when no dots found", () => {
+    expect(parseMemberAccessChain("hello")).toBeNull();
+    expect(parseMemberAccessChain("")).toBeNull();
+    expect(parseMemberAccessChain("  x")).toBeNull();
+  });
+
+  it("handles prefix before chain", () => {
+    const result = parseMemberAccessChain("  x = this.field");
+    expect(result).toEqual({ chain: "this.", partial: "field" });
+  });
+
+  it("handles whitespace between chain and partial", () => {
+    const result = parseMemberAccessChain("this.GPIO7. pi");
+    expect(result).toEqual({ chain: "this.GPIO7.", partial: "pi" });
   });
 });

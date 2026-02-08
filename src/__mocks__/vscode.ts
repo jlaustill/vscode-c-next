@@ -440,18 +440,19 @@ export function createMockTextDocument(options: {
         range.end.character;
       return content.slice(startOffset, endOffset);
     },
-    lineAt: (line: number): TextLine => {
-      const text = lines[line] ?? "";
+    lineAt: (line: number | Position): TextLine => {
+      const lineNum = typeof line === "number" ? line : line.line;
+      const text = lines[lineNum] ?? "";
       return {
-        lineNumber: line,
+        lineNumber: lineNum,
         text,
         range: new Range(
-          new Position(line, 0),
-          new Position(line, text.length),
+          new Position(lineNum, 0),
+          new Position(lineNum, text.length),
         ),
         rangeIncludingLineBreak: new Range(
-          new Position(line, 0),
-          new Position(line, text.length + 1),
+          new Position(lineNum, 0),
+          new Position(lineNum, text.length + 1),
         ),
         firstNonWhitespaceCharacterIndex: text.search(/\S/),
         isEmptyOrWhitespace: text.trim().length === 0,
@@ -480,7 +481,11 @@ export function createMockTextDocument(options: {
     ): Range | undefined => {
       const line = lines[position.line];
       if (!line) return undefined;
-      const pattern = regex ?? /\w+/g;
+      // Ensure the pattern has the global flag to prevent infinite loops with RegExp exec()
+      const basePattern = regex ?? /\w+/g;
+      const pattern = basePattern.global
+        ? basePattern
+        : new RegExp(basePattern.source, basePattern.flags + "g");
       let match;
       while ((match = pattern.exec(line)) !== null) {
         const start = match.index;

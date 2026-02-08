@@ -10,6 +10,7 @@ import {
   findOutputPath,
   findSymbolByName,
   findSymbolWithFallback,
+  extractTrailingWord,
 } from "./utils";
 import ScopeTracker from "./scopeTracker";
 
@@ -623,9 +624,9 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     if (charBefore === ".") {
       // Find the word before the dot
       const beforeDot = lineText.substring(0, wordRange.start.character - 1);
-      const parentMatch = beforeDot.match(/(\w+)$/);
-      if (parentMatch) {
-        parentName = parentMatch[1];
+      const trailingWord = extractTrailingWord(beforeDot);
+      if (trailingWord) {
+        parentName = trailingWord;
       }
     }
 
