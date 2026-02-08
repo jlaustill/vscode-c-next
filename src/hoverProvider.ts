@@ -11,6 +11,7 @@ import {
   findSymbolByName,
   findSymbolWithFallback,
 } from "./utils";
+import ScopeTracker from "./scopeTracker";
 
 /**
  * Language type for file detection
@@ -683,15 +684,13 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
 
     // Resolve C-Next qualifiers: "this" → current scope, "global" → scope lookup
     if (parentName === "this") {
-      // "this.X" means X is a member of the enclosing scope
-      // TODO: This picks the first scope in the file, not the one enclosing
-      // the cursor. Fine for single-scope files; needs position-aware lookup
-      // for multi-scope files.
-      const enclosingScope = symbols.find(
-        (s) => s.kind === "namespace" || s.kind === "scope",
+      // "this.X" means X is a member of the scope enclosing the cursor
+      const enclosingScope = ScopeTracker.getCurrentScope(
+        source,
+        position.line,
       );
       if (enclosingScope) {
-        parentName = enclosingScope.name;
+        parentName = enclosingScope;
       }
     } else if (parentName === "global") {
       // "global.X" means X is a top-level scope name — hover the scope itself

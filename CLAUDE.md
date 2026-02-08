@@ -114,8 +114,8 @@ Integration tests use the **real `cnext --serve` server** with mocked vscode API
 The extension requires the C-Next transpiler:
 
 ```bash
-npm install -g @jlaustill/cnext       # global
-npm install --save-dev @jlaustill/cnext  # local
+npm i -g c-next                       # global
+npm i --save-dev c-next               # local
 ```
 
 Server discovery order: custom path setting → workspace `node_modules` → global PATH.
