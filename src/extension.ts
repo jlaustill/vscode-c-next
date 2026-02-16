@@ -7,6 +7,7 @@ import CNextDefinitionProvider from "./display/DefinitionProvider";
 import WorkspaceIndex from "./state/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
+import StatusBar from "./display/StatusBar";
 import { EDITOR_SWITCH_DEBOUNCE_MS } from "./constants/editorSwitchDebounceMs";
 import { DIAGNOSTIC_DEBOUNCE_MS } from "./constants/diagnosticDebounceMs";
 
@@ -245,6 +246,7 @@ export async function activate(
   }
 
   // Create status bar item for index status
+  const statusBar = new StatusBar();
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
@@ -253,8 +255,9 @@ export async function activate(
   statusBarItem.tooltip = "C-Next Workspace Index";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+  statusBar.setStatusBarItem(statusBarItem);
   workspaceIndex.setStatusCallback((text: string) => {
-    statusBarItem.text = text;
+    statusBar.update(text);
   });
 
   // Initialize the workspace index with workspace folders
