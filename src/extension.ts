@@ -5,6 +5,7 @@ import CNextCompletionProvider from "./display/CompletionProvider";
 import CNextHoverProvider from "./display/HoverProvider";
 import CNextDefinitionProvider from "./display/DefinitionProvider";
 import WorkspaceIndex from "./state/WorkspaceIndex";
+import SymbolResolver from "./state/SymbolResolver";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
 import StatusBar from "./display/StatusBar";
@@ -318,10 +319,13 @@ export async function activate(
   );
   context.subscriptions.push(hoverProvider);
 
+  // Create shared SymbolResolver (reusable by multiple providers)
+  const symbolResolver = new SymbolResolver(workspaceIndex);
+
   // Register definition provider (Ctrl+Click / F12)
   const definitionProvider = vscode.languages.registerDefinitionProvider(
     "cnext",
-    new CNextDefinitionProvider(workspaceIndex, extensionContext),
+    new CNextDefinitionProvider(symbolResolver, extensionContext),
   );
   context.subscriptions.push(definitionProvider);
 

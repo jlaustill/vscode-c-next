@@ -1,27 +1,19 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import { ISymbolInfo } from "../server/CNextServerClient";
-import WorkspaceIndex from "../state/WorkspaceIndex";
 import CNextExtensionContext from "../ExtensionContext";
-import { extractTrailingWord } from "../state/utils";
-
-/**
- * Extended symbol info that includes source file path
- */
-interface ISymbolWithFile extends ISymbolInfo {
-  sourceFile?: string;
-}
+import SymbolResolver, { IResolvedSymbol } from "../state/SymbolResolver";
+import { ISymbolInfo } from "../state/types";
 
 /**
  * C-Next Definition Provider
  * Provides "Go to Definition" support for C-Next source files
- * Supports cross-file navigation via WorkspaceIndex
+ * Delegates all symbol resolution to SymbolResolver
  */
 export default class CNextDefinitionProvider
   implements vscode.DefinitionProvider
 {
   constructor(
-    private readonly workspaceIndex?: WorkspaceIndex,
+    private readonly resolver: SymbolResolver,
     private readonly extensionContext?: CNextExtensionContext,
   ) {}
 
@@ -43,73 +35,37 @@ export default class CNextDefinitionProvider
 
     const word = document.getText(wordRange);
     const lineText = document.lineAt(position).text;
-    const charBefore =
-      wordRange.start.character > 0
-        ? lineText.charAt(wordRange.start.character - 1)
-        : "";
-
-    // Check if this is a member access (word after a dot)
-    let parentName: string | undefined;
-    if (charBefore === ".") {
-      // Find the word before the dot
-      const beforeDot = lineText.substring(0, wordRange.start.character - 1);
-      const trailingWord = extractTrailingWord(beforeDot);
-      if (trailingWord) {
-        parentName = trailingWord;
-      }
-    }
-
-    // FAST PATH: Check current document first via server
-    const localSymbol = await this.findLocalSymbol(document, word, parentName);
-    if (localSymbol) {
-      return this.createLocation(document.uri, localSymbol, document);
-    }
-
-    // CROSS-FILE: Check workspace index
-    if (this.workspaceIndex) {
-      const workspaceSymbol = this.workspaceIndex.findDefinition(
-        word,
-        document.uri,
-      ) as ISymbolWithFile;
-      if (workspaceSymbol?.sourceFile) {
-        const targetUri = vscode.Uri.file(workspaceSymbol.sourceFile);
-        return this.createLocationFromFile(targetUri, workspaceSymbol);
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Find a symbol in the current document via server
-   */
-  private async findLocalSymbol(
-    document: vscode.TextDocument,
-    word: string,
-    parentName?: string,
-  ): Promise<ISymbolInfo | undefined> {
     const source = document.getText();
+
+    // Parse symbols from the current document
     const parseResult = await this.extensionContext?.serverClient?.parseSymbols(
       source,
       document.uri.fsPath,
     );
-    if (!parseResult) {
-      // Server unavailable - no local symbol lookup possible
-      return undefined;
+    const symbols: ISymbolInfo[] = parseResult?.symbols ?? [];
+
+    // Resolve the symbol via SymbolResolver
+    const resolved = this.resolver.resolveAtPosition(
+      lineText,
+      word,
+      { startCharacter: wordRange.start.character },
+      source,
+      position.line,
+      symbols,
+      document.uri,
+    );
+
+    if (!resolved) {
+      return null;
     }
-    const symbols = parseResult.symbols;
 
-    if (parentName) {
-      // Looking for a member of parentName
-      return symbols.find((s) => s.name === word && s.parent === parentName);
+    // Build a vscode.Location from the resolved symbol
+    if (resolved.source === "workspace" && resolved.sourceFile) {
+      const targetUri = vscode.Uri.file(resolved.sourceFile);
+      return this.createLocationFromFile(targetUri, resolved);
     }
 
-    // Looking for a top-level symbol or any symbol with this name
-    let symbol = symbols.find((s) => s.name === word && !s.parent);
-    symbol ??= symbols.find((s) => s.fullName === word);
-    symbol ??= symbols.find((s) => s.name === word);
-
-    return symbol;
+    return this.createLocation(document.uri, resolved, document);
   }
 
   /**
@@ -147,7 +103,7 @@ export default class CNextDefinitionProvider
    */
   private createLocationFromFile(
     uri: vscode.Uri,
-    symbol: ISymbolWithFile,
+    symbol: IResolvedSymbol,
   ): vscode.Location | null {
     if (!symbol.line) {
       return null;
