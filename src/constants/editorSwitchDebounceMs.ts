@@ -1,0 +1,1 @@
+export const EDITOR_SWITCH_DEBOUNCE_MS = 150;

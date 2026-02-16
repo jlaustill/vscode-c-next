@@ -5,9 +5,8 @@ import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import CNextExtensionContext from "../ExtensionContext";
 import {
-  MAX_GLOBAL_COMPLETION_ITEMS,
   MIN_PREFIX_LENGTH_FOR_CPP_QUERY
-} from "../utils";
+} from "../constants/minPrefixLengthForCppQuery";
 import ScopeTracker from "../state/ScopeTracker";
 import { extractTrailingWord } from "../state/utils";
 import { parseMemberAccessChain } from "../state/utils";
@@ -20,9 +19,10 @@ import { getAccessDescription } from "./utils";
 import { getCompletionLabel } from "./utils";
 import { escapeRegex } from "./utils";
 import { findOutputPath } from "./utils";
-import { C_FUNCTION_DECLARATION_PATTERN } from "./utils";
-import { INDENTED_LINE_PATTERN } from "./utils";
-import { INDENTATION_PATTERN } from "./utils";
+import { C_FUNCTION_DECLARATION_PATTERN } from "../constants/cFunctionDeclarationPattern";
+import { INDENTED_LINE_PATTERN } from "../constants/indentedLinePattern";
+import { INDENTATION_PATTERN } from "../constants/indentationPattern";
+import { MAX_GLOBAL_COMPLETION_ITEMS } from "../constants/maxGlobalCompletionItems";
 
 /**
  * Symbol kind type for completion mapping

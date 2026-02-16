@@ -40,10 +40,3 @@ export function findOutputPath(
   if (cachedPath && fs.existsSync(cachedPath)) return cachedPath;
   return null;
 }
-
-export const C_FUNCTION_DECLARATION_PATTERN =
-  /^(void|int|bool|char|float|double|uint\d+_t|int\d+_t)\s+\w+\s*\([^)]*\)\s*\{?$/;
-
-export const INDENTED_LINE_PATTERN = /^\s{4,}/;
-
-export const INDENTATION_PATTERN = /^(\s+)/;

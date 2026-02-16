@@ -7,7 +7,8 @@ import CNextDefinitionProvider from "./display/DefinitionProvider";
 import WorkspaceIndex from "./state/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
-import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
+import { EDITOR_SWITCH_DEBOUNCE_MS } from "./constants/editorSwitchDebounceMs";
+import { DIAGNOSTIC_DEBOUNCE_MS } from "./constants/diagnosticDebounceMs";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;

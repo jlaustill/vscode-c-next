@@ -17,7 +17,7 @@ import {
   ISymbolInfo,
 } from "./types";
 import IncludeResolver from "./IncludeResolver";
-import { CACHE_CLEANUP_INTERVAL_MS } from "../utils";
+import { CACHE_CLEANUP_INTERVAL_MS } from "../constants/cacheCleanupIntervalMs";
 import CNextServerClient from "../server/CNextServerClient";
 
 /**

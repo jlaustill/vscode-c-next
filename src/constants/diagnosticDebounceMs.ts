@@ -1,0 +1,1 @@
+export const DIAGNOSTIC_DEBOUNCE_MS = 300;
