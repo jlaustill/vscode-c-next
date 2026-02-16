@@ -4,7 +4,7 @@ import {
   trackBraces,
   isWordChar,
   extractTrailingWord,
-} from "./utils";
+} from "../utils";
 
 /**
  * Match a function declaration like "public void toggle() {" or "u8 read() {"

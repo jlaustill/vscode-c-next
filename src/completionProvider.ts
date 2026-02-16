@@ -22,7 +22,7 @@ import {
   extractTrailingWord,
   parseMemberAccessChain,
 } from "./utils";
-import ScopeTracker from "./scopeTracker";
+import ScopeTracker from "./state/ScopeTracker";
 
 /**
  * Symbol kind type for completion mapping

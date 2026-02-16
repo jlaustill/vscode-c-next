@@ -12,7 +12,7 @@ import {
   findSymbolWithFallback,
   extractTrailingWord,
 } from "./utils";
-import ScopeTracker from "./scopeTracker";
+import ScopeTracker from "./state/ScopeTracker";
 
 /**
  * Language type for file detection
