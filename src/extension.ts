@@ -312,15 +312,15 @@ export async function activate(
   );
   context.subscriptions.push(completionProvider);
 
+  // Create shared SymbolResolver (reusable by multiple providers)
+  const symbolResolver = new SymbolResolver(workspaceIndex);
+
   // Register hover provider
   const hoverProvider = vscode.languages.registerHoverProvider(
     "cnext",
-    new CNextHoverProvider(workspaceIndex, extensionContext),
+    new CNextHoverProvider(symbolResolver, workspaceIndex, extensionContext),
   );
   context.subscriptions.push(hoverProvider);
-
-  // Create shared SymbolResolver (reusable by multiple providers)
-  const symbolResolver = new SymbolResolver(workspaceIndex);
 
   // Register definition provider (Ctrl+Click / F12)
   const definitionProvider = vscode.languages.registerDefinitionProvider(

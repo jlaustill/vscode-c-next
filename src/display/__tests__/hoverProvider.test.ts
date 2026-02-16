@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as vscode from "vscode";
 import CNextHoverProvider from "../HoverProvider";
+import SymbolResolver from "../../state/SymbolResolver";
 import type CNextExtensionContext from "../../ExtensionContext";
 
 /**
@@ -66,7 +67,11 @@ describe("CNextHoverProvider", () => {
         symbols,
       }));
 
-      const provider = new CNextHoverProvider(undefined, mockCtx);
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
 
       // Cursor on "pin" in "    this.pin;" (line 3, character 9 = 'p' of pin)
       const document = vscode.createMockTextDocument({
@@ -115,7 +120,11 @@ describe("CNextHoverProvider", () => {
         symbols,
       }));
 
-      const provider = new CNextHoverProvider(undefined, mockCtx);
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
 
       const document = vscode.createMockTextDocument({
         content: source,
@@ -153,7 +162,11 @@ describe("CNextHoverProvider", () => {
         symbols,
       }));
 
-      const provider = new CNextHoverProvider(undefined, mockCtx);
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
 
       const document = vscode.createMockTextDocument({
         content: source,
@@ -183,7 +196,11 @@ describe("CNextHoverProvider", () => {
         symbols: [],
       }));
 
-      const provider = new CNextHoverProvider(undefined, mockCtx);
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
 
       const document = vscode.createMockTextDocument({
         content: source,
@@ -213,7 +230,11 @@ describe("CNextHoverProvider", () => {
         symbols: [],
       }));
 
-      const provider = new CNextHoverProvider(undefined, mockCtx);
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
 
       const document = vscode.createMockTextDocument({
         content: source,
@@ -236,7 +257,7 @@ describe("CNextHoverProvider", () => {
 
   describe("cancellation", () => {
     it("returns null when token is cancelled", async () => {
-      const provider = new CNextHoverProvider();
+      const provider = new CNextHoverProvider(new SymbolResolver(null));
 
       const document = vscode.createMockTextDocument({
         content: "u32 x;",

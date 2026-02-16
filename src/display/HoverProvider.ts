@@ -3,14 +3,9 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
+import SymbolResolver from "../state/SymbolResolver";
 import CNextExtensionContext from "../ExtensionContext";
-import {
-  findOutputPath
-} from "./utils";
-import ScopeTracker from "../state/ScopeTracker";
-import { extractTrailingWord } from "../state/utils";
-import { findSymbolByName } from "../state/utils";
-import { findSymbolWithFallback } from "../state/utils";
+import { findOutputPath } from "./utils";
 import { getAccessDescription } from "./utils";
 import { escapeRegex } from "./utils";
 
@@ -592,6 +587,7 @@ function buildSymbolHover(
  */
 export default class CNextHoverProvider implements vscode.HoverProvider {
   constructor(
+    private readonly resolver: SymbolResolver,
     private readonly workspaceIndex?: WorkspaceIndex,
     private readonly extensionContext?: CNextExtensionContext,
   ) {}
@@ -614,21 +610,6 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
 
     const word = document.getText(wordRange);
     const lineText = document.lineAt(position).text;
-    const charBefore =
-      wordRange.start.character > 0
-        ? lineText.charAt(wordRange.start.character - 1)
-        : "";
-
-    // Check if this is a member access (word after a dot)
-    let parentName: string | undefined;
-    if (charBefore === ".") {
-      // Find the word before the dot
-      const beforeDot = lineText.substring(0, wordRange.start.character - 1);
-      const trailingWord = extractTrailingWord(beforeDot);
-      if (trailingWord) {
-        parentName = trailingWord;
-      }
-    }
 
     // Check for primitive type
     if (TYPE_INFO[word]) {
@@ -683,69 +664,24 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     }
     const symbols = parseResult.symbols;
 
-    // Resolve C-Next qualifiers: "this" → current scope, "global" → scope lookup
-    if (parentName === "this") {
-      // "this.X" means X is a member of the scope enclosing the cursor
-      const enclosingScope = ScopeTracker.getCurrentScope(
-        source,
-        position.line,
-      );
-      if (enclosingScope) {
-        parentName = enclosingScope;
-      }
-    } else if (parentName === "global") {
-      // "global.X" means X is a top-level scope name — hover the scope itself
-      // "global.X.Y" is handled by the dot-chain logic (parentName would be X)
-      parentName = undefined;
-    }
+    // Delegate symbol resolution to SymbolResolver
+    const resolved = this.resolver.resolveAtPosition(
+      lineText,
+      word,
+      { startCharacter: wordRange.start.character },
+      source,
+      position.line,
+      symbols,
+      document.uri,
+    );
 
-    // Look for symbol in current document using utility functions
-    let symbol: ISymbolInfo | undefined;
-
-    if (parentName) {
-      symbol = findSymbolByName(symbols, word, parentName);
-      // Also check workspace for cross-file scope members
-      symbol ??= this.workspaceIndex
-        ? findSymbolByName(
-            this.workspaceIndex.getAllSymbols(),
-            word,
-            parentName,
-          )
-        : undefined;
-    } else {
-      symbol = findSymbolWithFallback(symbols, word);
-    }
-
-    if (symbol) {
-      // For local symbols, use the current document as the source file
+    if (resolved) {
+      const sourceFile =
+        resolved.source === "local" ? document.uri.fsPath : undefined;
       return new vscode.Hover(
-        buildSymbolHover(
-          symbol,
-          symbols,
-          document.uri.fsPath,
-          this.workspaceIndex,
-        ),
+        buildSymbolHover(resolved, symbols, sourceFile, this.workspaceIndex),
         wordRange,
       );
-    }
-
-    // CROSS-FILE: Check workspace index for symbols from other files
-    if (this.workspaceIndex) {
-      const workspaceSymbol = this.workspaceIndex.findDefinition(
-        word,
-        document.uri,
-      ) as ISymbolWithFile;
-      if (workspaceSymbol) {
-        return new vscode.Hover(
-          buildSymbolHover(
-            workspaceSymbol,
-            symbols,
-            undefined,
-            this.workspaceIndex,
-          ),
-          wordRange,
-        );
-      }
     }
 
     // FALLBACK: Query C/C++ extension via the generated .c file
