@@ -6,8 +6,8 @@ import WorkspaceIndex from "../state/WorkspaceIndex";
 import SymbolResolver from "../state/SymbolResolver";
 import CNextExtensionContext from "../ExtensionContext";
 import { findOutputPath } from "./utils";
+import { findWordInSource } from "./utils";
 import { getAccessDescription } from "./utils";
-import { escapeRegex } from "./utils";
 
 /**
  * Language type for file detection
@@ -725,11 +725,13 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     try {
       // Read the output file and find the word
       const outputSource = fs.readFileSync(outputPath, "utf-8");
-      const wordPosition = this.findWordInSource(outputSource, word);
+      const wordPos = findWordInSource(outputSource, word);
 
-      if (!wordPosition) {
+      if (!wordPos) {
         return null;
       }
+
+      const wordPosition = new vscode.Position(wordPos.line, wordPos.character);
 
       // Query the C/C++ extension's hover provider
       const outputUri = vscode.Uri.file(outputPath);
@@ -795,29 +797,6 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     } catch (err) {
       // Silently fail - C/C++ extension might not be installed
       console.error("C-Next: Failed to query C/C++ hover:", err);
-    }
-
-    return null;
-  }
-
-  /**
-   * Find a word in source code and return its position
-   */
-  private findWordInSource(
-    source: string,
-    word: string,
-  ): vscode.Position | null {
-    const lines = source.split("\n");
-
-    for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-      const line = lines[lineNum];
-      // Use word boundary regex to find exact word matches
-      const regex = new RegExp(String.raw`\b${escapeRegex(word)}\b`);
-      const match = regex.exec(line);
-
-      if (match) {
-        return new vscode.Position(lineNum, match.index);
-      }
     }
 
     return null;
