@@ -7,6 +7,7 @@ import SymbolResolver from "../state/SymbolResolver";
 import CNextExtensionContext from "../ExtensionContext";
 import { MIN_PREFIX_LENGTH_FOR_CPP_QUERY } from "../constants/minPrefixLengthForCppQuery";
 import ScopeTracker from "../state/ScopeTracker";
+import { extractStructFields } from "../state/utils";
 import { extractTrailingWord } from "../state/utils";
 import { parseMemberAccessChain } from "../state/utils";
 import { countBraceChange } from "../state/utils";
@@ -352,7 +353,13 @@ export default class CNextCompletionProvider
       // Server unavailable - return keyword/type completions only
       return this.getGlobalCompletions([], document.uri);
     }
-    const symbols = parseResult.symbols;
+    // Merge server symbols with locally-extracted struct fields
+    // (the server doesn't return struct members as individual symbols)
+    const structFields = extractStructFields(source);
+    const symbols =
+      structFields.length > 0
+        ? [...parseResult.symbols, ...structFields]
+        : parseResult.symbols;
 
     // Determine current scope context for this/global resolution
     const currentScope = ScopeTracker.getCurrentScope(source, position.line);

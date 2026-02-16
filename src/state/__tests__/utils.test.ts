@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { isWordChar } from "../utils";
 import { extractTrailingWord } from "../utils";
+import { extractStructFields } from "../utils";
 import { parseMemberAccessChain } from "../utils";
 import { stripComments } from "../utils";
 import { isCommentLine } from "../utils";
@@ -446,5 +447,118 @@ describe("parseMemberAccessChain", () => {
     // The dot is counted but has no word segment — chain is just "."
     const result = parseMemberAccessChain(".field");
     expect(result).toEqual({ chain: ".", partial: "field" });
+  });
+
+  it("parses array-indexed access: current[i].", () => {
+    const result = parseMemberAccessChain("current[i].");
+    expect(result).toEqual({ chain: "current.", partial: "" });
+  });
+
+  it("parses array-indexed access with numeric index: current[0].", () => {
+    const result = parseMemberAccessChain("current[0].");
+    expect(result).toEqual({ chain: "current.", partial: "" });
+  });
+
+  it("parses array-indexed access with partial: current[i].val", () => {
+    const result = parseMemberAccessChain("current[i].val");
+    expect(result).toEqual({ chain: "current.", partial: "val" });
+  });
+
+  it("parses array-indexed access with expression: arr[i + 1].", () => {
+    const result = parseMemberAccessChain("arr[i + 1].");
+    expect(result).toEqual({ chain: "arr.", partial: "" });
+  });
+
+  it("parses chained array access: this.current[i].", () => {
+    const result = parseMemberAccessChain("this.current[i].");
+    expect(result).toEqual({ chain: "this.current.", partial: "" });
+  });
+
+  it("parses prefix before array access: x = current[i].val", () => {
+    const result = parseMemberAccessChain("  x = current[i].val");
+    expect(result).toEqual({ chain: "current.", partial: "val" });
+  });
+});
+
+// ============================================================================
+// Struct Field Extraction
+// ============================================================================
+
+describe("extractStructFields", () => {
+  it("extracts fields from a simple struct", () => {
+    const source = [
+      "struct TSensorValue {",
+      "    f32 value;",
+      "    bool hasHardware;",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(2);
+
+    const value = fields.find((f) => f.name === "value");
+    expect(value).toBeDefined();
+    expect(value!.type).toBe("f32");
+    expect(value!.parent).toBe("TSensorValue");
+    expect(value!.kind).toBe("field");
+    expect(value!.fullName).toBe("TSensorValue_value");
+
+    const hw = fields.find((f) => f.name === "hasHardware");
+    expect(hw).toBeDefined();
+    expect(hw!.type).toBe("bool");
+    expect(hw!.parent).toBe("TSensorValue");
+  });
+
+  it("extracts fields from multiple structs", () => {
+    const source = [
+      "struct Point {",
+      "    f32 x;",
+      "    f32 y;",
+      "}",
+      "struct Color {",
+      "    u8 r;",
+      "    u8 g;",
+      "    u8 b;",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(5);
+    expect(fields.filter((f) => f.parent === "Point")).toHaveLength(2);
+    expect(fields.filter((f) => f.parent === "Color")).toHaveLength(3);
+  });
+
+  it("returns empty array when no structs found", () => {
+    const source = "scope LED {\n  u8 pin;\n}";
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(0);
+  });
+
+  it("handles struct with custom type fields", () => {
+    const source = [
+      "struct Config {",
+      "    TSensorValue sensor;",
+      "    u16 interval;",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(2);
+
+    const sensor = fields.find((f) => f.name === "sensor");
+    expect(sensor!.type).toBe("TSensorValue");
+  });
+
+  it("ignores comment lines inside struct", () => {
+    const source = [
+      "struct Data {",
+      "    // counter field",
+      "    u32 counter;",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(1);
+    expect(fields[0].name).toBe("counter");
   });
 });

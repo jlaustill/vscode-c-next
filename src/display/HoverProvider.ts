@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import SymbolResolver from "../state/SymbolResolver";
+import { extractStructFields } from "../state/utils";
 import CNextExtensionContext from "../ExtensionContext";
 import { findOutputPath } from "./utils";
 import { findWordInSource } from "./utils";
@@ -662,7 +663,12 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
       }
       return null;
     }
-    const symbols = parseResult.symbols;
+    // Merge server symbols with locally-extracted struct fields
+    const structFields = extractStructFields(source);
+    const symbols =
+      structFields.length > 0
+        ? [...parseResult.symbols, ...structFields]
+        : parseResult.symbols;
 
     // Delegate symbol resolution to SymbolResolver
     const resolved = this.resolver.resolveAtPosition(

@@ -164,8 +164,10 @@ export default class SymbolResolver {
 
     // For named scopes with a single-element chain (e.g. ["Ossm"]),
     // the parent is already the scope name — nothing else to resolve.
+    // However, if the name is a typed variable (e.g. "current" with type "TSensorValue"),
+    // resolve to the type so struct member lookup works.
     if (startIndex === 0 && chain.length === 1) {
-      return currentParent;
+      return this.resolveVariableType(currentParent, localSymbols, documentUri);
     }
 
     // Merge local + workspace symbols for lookup
@@ -246,6 +248,33 @@ export default class SymbolResolver {
   // --------------------------------------------------------------------------
   // Private helpers
   // --------------------------------------------------------------------------
+
+  /**
+   * If `name` is a typed variable/field, return its type name for member lookup.
+   * Otherwise return the name unchanged (it's likely a scope/namespace).
+   */
+  private resolveVariableType(
+    name: string,
+    localSymbols: ISymbolInfo[],
+    documentUri: vscode.Uri,
+  ): string {
+    const allSymbols = this.mergeSymbols(localSymbols, documentUri);
+
+    // Look up the symbol by name (any parent)
+    const symbol = findSymbolByName(allSymbols, name);
+    if (
+      symbol?.type &&
+      (symbol.kind === "variable" || symbol.kind === "field")
+    ) {
+      // Check if there are actual members using this type as parent
+      const hasMembers = allSymbols.some((s) => s.parent === symbol.type);
+      if (hasMembers) {
+        return symbol.type!;
+      }
+    }
+
+    return name;
+  }
 
   /**
    * Combine local symbols with workspace and included symbols for chain walking.

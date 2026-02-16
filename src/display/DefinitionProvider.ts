@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "node:fs";
 import CNextExtensionContext from "../ExtensionContext";
 import SymbolResolver, { IResolvedSymbol } from "../state/SymbolResolver";
+import { extractStructFields } from "../state/utils";
 import { ISymbolInfo } from "../state/types";
 
 /**
@@ -42,7 +43,13 @@ export default class CNextDefinitionProvider
       source,
       document.uri.fsPath,
     );
-    const symbols: ISymbolInfo[] = parseResult?.symbols ?? [];
+    // Merge server symbols with locally-extracted struct fields
+    const structFields = extractStructFields(source);
+    const serverSymbols: ISymbolInfo[] = parseResult?.symbols ?? [];
+    const symbols =
+      structFields.length > 0
+        ? [...serverSymbols, ...structFields]
+        : serverSymbols;
 
     // Resolve the symbol via SymbolResolver
     const resolved = this.resolver.resolveAtPosition(

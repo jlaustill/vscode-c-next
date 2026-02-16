@@ -16,6 +16,108 @@ export function extractTrailingWord(str: string): string | null {
   return str.substring(end);
 }
 
+/**
+ * Extract struct fields from source code.
+ * Parses struct definitions and returns synthetic symbols for each field.
+ * This fills the gap where the server doesn't return struct members.
+ */
+export function extractStructFields(source: string): IMinimalSymbol[] {
+  const fields: IMinimalSymbol[] = [];
+  const lines = source.split("\n");
+  let currentStruct: string | null = null;
+  let braceDepth = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip comment lines
+    if (isCommentLine(trimmed)) continue;
+
+    const clean = stripComments(line);
+    const cleanTrimmed = clean.trim();
+
+    // Detect struct declaration: "struct Name {"
+    if (!currentStruct) {
+      const structIdx = cleanTrimmed.indexOf("struct ");
+      if (structIdx !== -1 && cleanTrimmed.includes("{")) {
+        const afterStruct = cleanTrimmed.substring(structIdx + 7).trim();
+        const nameEnd = afterStruct.indexOf(" ");
+        const bracePos = afterStruct.indexOf("{");
+        const endPos =
+          nameEnd !== -1 && nameEnd < bracePos ? nameEnd : bracePos;
+        if (endPos > 0) {
+          const name = afterStruct.substring(0, endPos).trim();
+          if (name.length > 0 && /^\w+$/.test(name)) {
+            currentStruct = name;
+            braceDepth = 1;
+            continue;
+          }
+        }
+      }
+      continue;
+    }
+
+    // Track braces inside struct
+    for (const ch of clean) {
+      if (ch === "{") braceDepth++;
+      if (ch === "}") braceDepth--;
+    }
+
+    // If we've exited the struct, reset
+    if (braceDepth <= 0) {
+      currentStruct = null;
+      continue;
+    }
+
+    // Parse field declaration: "type name;"
+    // Tokenize: split by whitespace, expect at least 2 tokens, last must end with ";"
+    if (!cleanTrimmed.includes(";")) continue;
+    const withoutSemicolon = cleanTrimmed.replace(";", "").trim();
+    const tokens = withoutSemicolon.split(/\s+/);
+    if (tokens.length >= 2) {
+      const type = tokens[0];
+      // Handle array types like "TSensorValue[5]" — strip array part from name
+      let name = tokens[1];
+      const bracketIdx = name.indexOf("[");
+      if (bracketIdx !== -1) {
+        name = name.substring(0, bracketIdx);
+      }
+      if (/^\w+$/.test(type) && /^\w+$/.test(name)) {
+        fields.push({
+          name,
+          fullName: `${currentStruct}_${name}`,
+          kind: "field",
+          type,
+          parent: currentStruct,
+        });
+      }
+    }
+  }
+
+  return fields;
+}
+
+/**
+ * Strip bracket expressions [...] from a string.
+ * Used to remove array indices from chain strings (e.g. "current[i]." → "current.").
+ */
+function stripBrackets(s: string): string {
+  let result = "";
+  let depth = 0;
+  for (const ch of s) {
+    if (ch === "[") {
+      depth++;
+      continue;
+    }
+    if (ch === "]") {
+      depth--;
+      continue;
+    }
+    if (depth === 0) result += ch;
+  }
+  return result;
+}
+
 export function parseMemberAccessChain(
   linePrefix: string,
 ): { chain: string; partial: string } | null {
@@ -41,6 +143,7 @@ export function parseMemberAccessChain(
 
   // Step 3: Walk backwards through word.word. chain
   // Must end with at least one "word." segment
+  // Handles array indexing: word[expr].word. is treated as word.word.
   let chainEnd = pos;
   let dotCount = 0;
 
@@ -50,7 +153,19 @@ export function parseMemberAccessChain(
     pos--;
     dotCount++;
 
-    // Expect a word before the dot
+    // Skip array index: if we see ']', skip to matching '['
+    if (pos > 0 && linePrefix[pos - 1] === "]") {
+      let bracketDepth = 1;
+      pos--;
+      while (pos > 0 && bracketDepth > 0) {
+        pos--;
+        if (linePrefix[pos] === "]") bracketDepth++;
+        if (linePrefix[pos] === "[") bracketDepth--;
+      }
+      if (bracketDepth !== 0) break; // Unmatched brackets
+    }
+
+    // Expect a word before the dot (or before the brackets)
     const segEnd = pos;
     while (pos > 0 && isWordChar(linePrefix.codePointAt(pos - 1)!)) {
       pos--;
@@ -63,7 +178,7 @@ export function parseMemberAccessChain(
 
   if (dotCount === 0) return null;
 
-  const chain = linePrefix.substring(pos, chainEnd);
+  const chain = stripBrackets(linePrefix.substring(pos, chainEnd));
   return { chain, partial };
 }
 

@@ -450,6 +450,55 @@ describe("SymbolResolver", () => {
       );
       expect(result).toBeNull();
     });
+
+    it("resolves typed variable chain: ['current'] → type name for struct member lookup", () => {
+      const resolver = new SymbolResolver(null);
+      const source = [
+        "scope SensorValues {",
+        "  public TSensorValue current;",
+        "  public void init() {",
+        "    current.value;",
+        "  }",
+        "}",
+      ].join("\n");
+
+      const localSymbols: ISymbolInfo[] = [
+        makeSymbol({
+          name: "SensorValues",
+          fullName: "SensorValues",
+          kind: "namespace",
+          line: 1,
+        }),
+        makeSymbol({
+          name: "current",
+          fullName: "SensorValues_current",
+          kind: "variable",
+          type: "TSensorValue",
+          parent: "SensorValues",
+          line: 2,
+        }),
+        // Struct fields (extracted from source by caller)
+        makeSymbol({
+          name: "value",
+          fullName: "TSensorValue_value",
+          kind: "field",
+          type: "f32",
+          parent: "TSensorValue",
+          line: 10,
+        }),
+      ];
+
+      const result = resolver.resolveChain(
+        ["current"],
+        source,
+        3,
+        localSymbols,
+        Uri.file("/test/file.cnx"),
+      );
+
+      // Should resolve "current" → look up type → "TSensorValue"
+      expect(result).toBe("TSensorValue");
+    });
   });
 
   // ============================================================================
