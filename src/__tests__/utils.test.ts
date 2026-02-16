@@ -1,24 +1,24 @@
 import { describe, it, expect } from "vitest";
 import {
-  getAccessDescription,
-  getCompletionLabel,
-  escapeRegex,
-  stripComments,
-  isCommentLine,
-  countBraceChange,
-  trackBraces,
-  findSymbolByName,
-  findSymbolByFullName,
-  findSymbolWithFallback,
-  concatParentName,
-  buildQualifiedName,
-  resolveChainStart,
-  resolveNextParent,
-  isWordChar,
-  extractTrailingWord,
-  parseMemberAccessChain,
-  type IMinimalSymbol,
-} from "../utils";
+  escapeRegex
+} from "../display/utils";
+import { isWordChar } from "../state/utils";
+import { extractTrailingWord } from "../state/utils";
+import { parseMemberAccessChain } from "../state/utils";
+import { stripComments } from "../state/utils";
+import { isCommentLine } from "../state/utils";
+import { countBraceChange } from "../state/utils";
+import { trackBraces } from "../state/utils";
+import { IMinimalSymbol } from "../state/utils";
+import { findSymbolByName } from "../state/utils";
+import { findSymbolByFullName } from "../state/utils";
+import { findSymbolWithFallback } from "../state/utils";
+import { concatParentName } from "../state/utils";
+import { buildQualifiedName } from "../state/utils";
+import { resolveChainStart } from "../state/utils";
+import { resolveNextParent } from "../state/utils";
+import { getAccessDescription } from "../display/utils";
+import { getCompletionLabel } from "../display/utils";
 
 describe("getAccessDescription", () => {
   it("returns read-write for rw", () => {

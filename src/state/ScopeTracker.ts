@@ -1,10 +1,10 @@
 import {
-  isCommentLine,
-  stripComments,
-  trackBraces,
-  isWordChar,
-  extractTrailingWord,
-} from "../utils";
+  trackBraces
+} from "./utils";
+import { isWordChar } from "./utils";
+import { extractTrailingWord } from "./utils";
+import { stripComments } from "./utils";
+import { isCommentLine } from "./utils";
 
 /**
  * Match a function declaration like "public void toggle() {" or "u8 read() {"

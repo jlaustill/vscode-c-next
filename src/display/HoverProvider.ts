@@ -5,14 +5,14 @@ import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import CNextExtensionContext from "../ExtensionContext";
 import {
-  getAccessDescription,
-  escapeRegex,
-  findOutputPath,
-  findSymbolByName,
-  findSymbolWithFallback,
-  extractTrailingWord,
-} from "../utils";
+  findOutputPath
+} from "./utils";
 import ScopeTracker from "../state/ScopeTracker";
+import { extractTrailingWord } from "../state/utils";
+import { findSymbolByName } from "../state/utils";
+import { findSymbolWithFallback } from "../state/utils";
+import { getAccessDescription } from "./utils";
+import { escapeRegex } from "./utils";
 
 /**
  * Language type for file detection

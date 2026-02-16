@@ -5,24 +5,24 @@ import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import CNextExtensionContext from "../ExtensionContext";
 import {
-  getAccessDescription,
-  getCompletionLabel,
-  escapeRegex,
-  findOutputPath,
   MAX_GLOBAL_COMPLETION_ITEMS,
-  MIN_PREFIX_LENGTH_FOR_CPP_QUERY,
-  findSymbolByName,
-  concatParentName,
-  resolveChainStart,
-  resolveNextParent,
-  countBraceChange,
-  C_FUNCTION_DECLARATION_PATTERN,
-  INDENTED_LINE_PATTERN,
-  INDENTATION_PATTERN,
-  extractTrailingWord,
-  parseMemberAccessChain,
+  MIN_PREFIX_LENGTH_FOR_CPP_QUERY
 } from "../utils";
 import ScopeTracker from "../state/ScopeTracker";
+import { extractTrailingWord } from "../state/utils";
+import { parseMemberAccessChain } from "../state/utils";
+import { countBraceChange } from "../state/utils";
+import { findSymbolByName } from "../state/utils";
+import { concatParentName } from "../state/utils";
+import { resolveChainStart } from "../state/utils";
+import { resolveNextParent } from "../state/utils";
+import { getAccessDescription } from "./utils";
+import { getCompletionLabel } from "./utils";
+import { escapeRegex } from "./utils";
+import { findOutputPath } from "./utils";
+import { C_FUNCTION_DECLARATION_PATTERN } from "./utils";
+import { INDENTED_LINE_PATTERN } from "./utils";
+import { INDENTATION_PATTERN } from "./utils";
 
 /**
  * Symbol kind type for completion mapping

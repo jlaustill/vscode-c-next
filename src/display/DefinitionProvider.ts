@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import CNextExtensionContext from "../ExtensionContext";
-import { extractTrailingWord } from "../utils";
+import { extractTrailingWord } from "../state/utils";
 
 /**
  * Extended symbol info that includes source file path
