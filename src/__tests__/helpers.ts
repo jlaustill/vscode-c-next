@@ -118,7 +118,7 @@ export function loadFixture(
  * Access private internals of WorkspaceIndex for test verification
  */
 export function getWorkspaceInternals(index: WorkspaceIndex) {
-  return index as unknown as {
+  const raw = index as unknown as {
     cache: {
       set: (
         uri: typeof vscode.Uri.prototype,
@@ -143,13 +143,23 @@ export function getWorkspaceInternals(index: WorkspaceIndex) {
         uri: typeof vscode.Uri.prototype,
       ) => { symbols: ISymbolInfo[] } | undefined;
     };
-    includeDependencies: Map<string, string[]>;
+    scanner: {
+      includeDependencies: Map<string, string[]>;
+      indexFile: (
+        uri: typeof vscode.Uri.prototype,
+        indexingStack?: Set<string>,
+      ) => Promise<void>;
+    };
     initialized: boolean;
     serverClient: CNextServerClient | null;
-    indexFile: (
-      uri: typeof vscode.Uri.prototype,
-      indexingStack?: Set<string>,
-    ) => Promise<void>;
+  };
+  return {
+    cache: raw.cache,
+    headerCache: raw.headerCache,
+    includeDependencies: raw.scanner.includeDependencies,
+    initialized: raw.initialized,
+    serverClient: raw.serverClient,
+    indexFile: raw.scanner.indexFile.bind(raw.scanner),
   };
 }
 

@@ -28,9 +28,15 @@ function getInternals(index: WorkspaceIndex) {
       ) => void;
       has: (uri: vscode.Uri) => boolean;
     };
-    includeDependencies: Map<string, string[]>;
+    scanner: {
+      includeDependencies: Map<string, string[]>;
+    };
   };
-  return raw;
+  return {
+    cache: raw.cache,
+    headerCache: raw.headerCache,
+    includeDependencies: raw.scanner.includeDependencies,
+  };
 }
 
 function makeSymbol(

@@ -253,7 +253,9 @@ export async function activate(
   statusBarItem.tooltip = "C-Next Workspace Index";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
-  workspaceIndex.setStatusBarItem(statusBarItem);
+  workspaceIndex.setStatusCallback((text: string) => {
+    statusBarItem.text = text;
+  });
 
   // Initialize the workspace index with workspace folders
   workspaceIndex.initialize([...(vscode.workspace.workspaceFolders || [])]);

@@ -340,7 +340,7 @@ describe("getMemberCompletions", () => {
       const driverUri = vscode.Uri.file("/project/driver.cnx");
 
       // Populate cache and include dependencies
-      const internals = index as unknown as {
+      const raw = index as unknown as {
         cache: {
           set: (
             uri: typeof vscode.Uri.prototype,
@@ -349,7 +349,13 @@ describe("getMemberCompletions", () => {
             hasErrors: boolean,
           ) => void;
         };
-        includeDependencies: Map<string, string[]>;
+        scanner: {
+          includeDependencies: Map<string, string[]>;
+        };
+      };
+      const internals = {
+        cache: raw.cache,
+        includeDependencies: raw.scanner.includeDependencies,
       };
 
       internals.cache.set(
