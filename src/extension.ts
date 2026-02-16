@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import PreviewProvider from "./previewProvider";
-import CNextCompletionProvider from "./completionProvider";
-import CNextHoverProvider from "./hoverProvider";
-import CNextDefinitionProvider from "./definitionProvider";
+import PreviewProvider from "./display/PreviewProvider";
+import CNextCompletionProvider from "./display/CompletionProvider";
+import CNextHoverProvider from "./display/HoverProvider";
+import CNextDefinitionProvider from "./display/DefinitionProvider";
 import WorkspaceIndex from "./state/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";

@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { ISymbolInfo } from "./server/CNextServerClient";
-import WorkspaceIndex from "./state/WorkspaceIndex";
-import CNextExtensionContext from "./ExtensionContext";
+import { ISymbolInfo } from "../server/CNextServerClient";
+import WorkspaceIndex from "../state/WorkspaceIndex";
+import CNextExtensionContext from "../ExtensionContext";
 import {
   getAccessDescription,
   getCompletionLabel,
@@ -21,8 +21,8 @@ import {
   INDENTATION_PATTERN,
   extractTrailingWord,
   parseMemberAccessChain,
-} from "./utils";
-import ScopeTracker from "./state/ScopeTracker";
+} from "../utils";
+import ScopeTracker from "../state/ScopeTracker";
 
 /**
  * Symbol kind type for completion mapping

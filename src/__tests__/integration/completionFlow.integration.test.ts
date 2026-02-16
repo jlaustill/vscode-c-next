@@ -19,7 +19,7 @@ import {
 import CNextServerClient from "../../server/CNextServerClient";
 import type { ISymbolInfo } from "../../server/CNextServerClient";
 import WorkspaceIndex from "../../state/WorkspaceIndex";
-import CNextCompletionProvider from "../../completionProvider";
+import CNextCompletionProvider from "../../display/CompletionProvider";
 
 /**
  * Access the private getMemberCompletions method on the provider

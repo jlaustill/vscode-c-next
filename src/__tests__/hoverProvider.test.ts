@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import * as vscode from "vscode";
-import CNextHoverProvider from "../hoverProvider";
+import CNextHoverProvider from "../display/HoverProvider";
 import type CNextExtensionContext from "../ExtensionContext";
 
 /**

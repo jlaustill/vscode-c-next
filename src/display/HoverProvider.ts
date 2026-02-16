@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { ISymbolInfo } from "./server/CNextServerClient";
-import WorkspaceIndex from "./state/WorkspaceIndex";
-import CNextExtensionContext from "./ExtensionContext";
+import { ISymbolInfo } from "../server/CNextServerClient";
+import WorkspaceIndex from "../state/WorkspaceIndex";
+import CNextExtensionContext from "../ExtensionContext";
 import {
   getAccessDescription,
   escapeRegex,
@@ -11,8 +11,8 @@ import {
   findSymbolByName,
   findSymbolWithFallback,
   extractTrailingWord,
-} from "./utils";
-import ScopeTracker from "./state/ScopeTracker";
+} from "../utils";
+import ScopeTracker from "../state/ScopeTracker";
 
 /**
  * Language type for file detection

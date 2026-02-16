@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "node:crypto";
-import CNextExtensionContext from "./ExtensionContext";
+import CNextExtensionContext from "../ExtensionContext";
 
 // ============================================================================
 // Syntax Highlighting Utilities (exported for testability)
