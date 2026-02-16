@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { ISymbolInfo } from "./server/CNextServerClient";
-import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import WorkspaceIndex from "./state/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import {
   getAccessDescription,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as vscode from "vscode";
-import WorkspaceIndex from "../workspace/WorkspaceIndex";
-import type { ISymbolInfo } from "../workspace/types";
+import WorkspaceIndex from "../state/WorkspaceIndex";
+import type { ISymbolInfo } from "../state/types";
 
 /**
  * Helper to access private members for test setup.

@@ -4,7 +4,7 @@ import PreviewProvider from "./previewProvider";
 import CNextCompletionProvider from "./completionProvider";
 import CNextHoverProvider from "./hoverProvider";
 import CNextDefinitionProvider from "./definitionProvider";
-import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import WorkspaceIndex from "./state/WorkspaceIndex";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
 import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";

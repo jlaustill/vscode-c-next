@@ -18,7 +18,7 @@ import {
 } from "./helpers";
 import CNextServerClient from "../../server/CNextServerClient";
 import type { ISymbolInfo } from "../../server/CNextServerClient";
-import WorkspaceIndex from "../../workspace/WorkspaceIndex";
+import WorkspaceIndex from "../../state/WorkspaceIndex";
 import CNextCompletionProvider from "../../completionProvider";
 
 /**

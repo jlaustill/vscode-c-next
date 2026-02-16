@@ -8,8 +8,8 @@ import * as path from "node:path";
 import { describe } from "vitest";
 import * as vscode from "vscode";
 import CNextServerClient from "../../server/CNextServerClient";
-import WorkspaceIndex from "../../workspace/WorkspaceIndex";
-import type { ISymbolInfo } from "../../workspace/types";
+import WorkspaceIndex from "../../state/WorkspaceIndex";
+import type { ISymbolInfo } from "../../state/types";
 
 export const FIXTURES_DIR = path.resolve(__dirname, "fixtures");
 

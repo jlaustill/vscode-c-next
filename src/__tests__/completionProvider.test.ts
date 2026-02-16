@@ -6,7 +6,7 @@ import CNextCompletionProvider, {
   type TSymbolKind,
 } from "../completionProvider";
 import type { ISymbolInfo } from "../server/CNextServerClient";
-import WorkspaceIndex from "../workspace/WorkspaceIndex";
+import WorkspaceIndex from "../state/WorkspaceIndex";
 
 describe("CNextCompletionProvider", () => {
   it("should not write debug files to /tmp", () => {

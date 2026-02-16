@@ -14,7 +14,7 @@ import {
   initializeWithFixtureDir,
 } from "./helpers";
 import CNextServerClient from "../../server/CNextServerClient";
-import WorkspaceIndex from "../../workspace/WorkspaceIndex";
+import WorkspaceIndex from "../../state/WorkspaceIndex";
 
 describeIntegration("WorkspaceIndex Integration", () => {
   let client: CNextServerClient;
