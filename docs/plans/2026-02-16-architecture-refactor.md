@@ -19,6 +19,7 @@ All moves use ts-morph `rename_filesystem_entry_by_tsmorph` to auto-update impor
 ### Task 1: Move workspace/ to state/
 
 **Files:**
+
 - Move: `src/workspace/WorkspaceIndex.ts` → `src/state/WorkspaceIndex.ts`
 - Move: `src/workspace/SymbolCache.ts` → `src/state/SymbolCache.ts`
 - Move: `src/workspace/IncludeResolver.ts` → `src/state/IncludeResolver.ts`
@@ -31,6 +32,7 @@ Run: `mkdir -p src/state`
 **Step 2: Move all 4 files with ts-morph**
 
 Use `rename_filesystem_entry_by_tsmorph` with all 4 renames in a single call:
+
 - `src/workspace/WorkspaceIndex.ts` → `src/state/WorkspaceIndex.ts`
 - `src/workspace/SymbolCache.ts` → `src/state/SymbolCache.ts`
 - `src/workspace/IncludeResolver.ts` → `src/state/IncludeResolver.ts`
@@ -58,11 +60,13 @@ git add -A && git commit -m "refactor: move workspace/ to state/ layer"
 ### Task 2: Move ScopeTracker into state/
 
 **Files:**
+
 - Move: `src/scopeTracker.ts` → `src/state/ScopeTracker.ts`
 
 **Step 1: Move with ts-morph**
 
 Use `rename_filesystem_entry_by_tsmorph`:
+
 - `src/scopeTracker.ts` → `src/state/ScopeTracker.ts`
 
 Auto-updates imports in: `completionProvider.ts`, `hoverProvider.ts`, `scopeTracker.test.ts`.
@@ -82,6 +86,7 @@ git add -A && git commit -m "refactor: move ScopeTracker into state/ layer"
 ### Task 3: Move providers into display/
 
 **Files:**
+
 - Move: `src/completionProvider.ts` → `src/display/CompletionProvider.ts`
 - Move: `src/hoverProvider.ts` → `src/display/HoverProvider.ts`
 - Move: `src/definitionProvider.ts` → `src/display/DefinitionProvider.ts`
@@ -94,6 +99,7 @@ Run: `mkdir -p src/display`
 **Step 2: Move all 4 files with ts-morph**
 
 Use `rename_filesystem_entry_by_tsmorph` with all 4 renames:
+
 - `src/completionProvider.ts` → `src/display/CompletionProvider.ts`
 - `src/hoverProvider.ts` → `src/display/HoverProvider.ts`
 - `src/definitionProvider.ts` → `src/display/DefinitionProvider.ts`
@@ -118,6 +124,7 @@ git add -A && git commit -m "refactor: move providers into display/ layer"
 This cannot use ts-morph file rename because we're splitting one file into two. Use `move_symbol_to_file_by_tsmorph` for each symbol, or manual creation + import fixup.
 
 **Files:**
+
 - Create: `src/state/utils.ts` — symbol resolution primitives
 - Create: `src/display/utils.ts` — display/formatting helpers
 - Delete: `src/utils.ts` (after all symbols moved)
@@ -180,6 +187,7 @@ git add -A && git commit -m "refactor: split utils.ts into state/utils.ts + disp
 ### Task 5: Extract constants into src/constants/
 
 **Files:**
+
 - Create: `src/constants/diagnosticDebounceMs.ts`
 - Create: `src/constants/editorSwitchDebounceMs.ts`
 - Create: `src/constants/cacheCleanupIntervalMs.ts`
@@ -200,6 +208,7 @@ Run: `mkdir -p src/constants`
 Move each constant (VariableStatement) from its current file to the appropriate constants file. The 5 numeric constants that were in the original utils.ts need to be located first — they may be in `display/utils.ts` or `state/utils.ts` after the split. The 3 regex pattern constants are in `display/utils.ts`.
 
 Constants to move:
+
 1. `DIAGNOSTIC_DEBOUNCE_MS` → `src/constants/diagnosticDebounceMs.ts`
 2. `EDITOR_SWITCH_DEBOUNCE_MS` → `src/constants/editorSwitchDebounceMs.ts`
 3. `CACHE_CLEANUP_INTERVAL_MS` → `src/constants/cacheCleanupIntervalMs.ts`
@@ -221,9 +230,10 @@ git add -A && git commit -m "refactor: extract constants into src/constants/ one
 
 ---
 
-### Task 6: Move tests to colocated __tests__/ folders
+### Task 6: Move tests to colocated **tests**/ folders
 
 **Files:**
+
 - Move: `src/__tests__/scopeTracker.test.ts` → `src/state/__tests__/scopeTracker.test.ts`
 - Move: `src/__tests__/workspaceIndex.test.ts` → `src/state/__tests__/workspaceIndex.test.ts`
 - Move: `src/__tests__/includeResolver.test.ts` → `src/state/__tests__/includeResolver.test.ts`
@@ -237,7 +247,7 @@ git add -A && git commit -m "refactor: extract constants into src/constants/ one
 - Move: `src/__tests__/integration/helpers.ts` → `src/__tests__/helpers.ts` (shared, stays at root)
 - Keep: `src/__tests__/integration/fixtures/` → `src/__tests__/fixtures/` (shared fixtures)
 
-**Step 1: Create __tests__/ directories**
+**Step 1: Create **tests**/ directories**
 
 Run: `mkdir -p src/state/__tests__ src/display/__tests__ src/server/__tests__`
 
@@ -246,27 +256,32 @@ Run: `mkdir -p src/state/__tests__ src/display/__tests__ src/server/__tests__`
 Use `rename_filesystem_entry_by_tsmorph` in batches. Tests import from source files, so ts-morph will update the relative paths.
 
 Batch 1 — state tests:
+
 - `src/__tests__/scopeTracker.test.ts` → `src/state/__tests__/scopeTracker.test.ts`
 - `src/__tests__/workspaceIndex.test.ts` → `src/state/__tests__/workspaceIndex.test.ts`
 - `src/__tests__/includeResolver.test.ts` → `src/state/__tests__/includeResolver.test.ts`
 - `src/__tests__/integration/workspaceIndex.integration.test.ts` → `src/state/__tests__/workspaceIndex.integration.test.ts`
 
 Batch 2 — display tests:
+
 - `src/__tests__/completionProvider.test.ts` → `src/display/__tests__/completionProvider.test.ts`
 - `src/__tests__/hoverProvider.test.ts` → `src/display/__tests__/hoverProvider.test.ts`
 - `src/__tests__/previewHighlight.test.ts` → `src/display/__tests__/previewHighlight.test.ts`
 - `src/__tests__/integration/completionFlow.integration.test.ts` → `src/display/__tests__/completionFlow.integration.test.ts`
 
 Batch 3 — server tests:
+
 - `src/__tests__/integration/serverClient.integration.test.ts` → `src/server/__tests__/serverClient.integration.test.ts`
 
 Batch 4 — shared test infra:
+
 - `src/__tests__/integration/helpers.ts` → `src/__tests__/helpers.ts`
 - Move `src/__tests__/integration/fixtures/` → `src/__tests__/fixtures/`
 
 **Step 3: Split utils.test.ts**
 
 Read `src/__tests__/utils.test.ts` and split tests based on which utils file they now test:
+
 - Tests for `findSymbolByName`, `extractTrailingWord`, `parseMemberAccessChain`, `stripComments`, `resolveChainStart`, etc. → `src/state/__tests__/utils.test.ts`
 - Tests for `getAccessDescription`, `getCompletionLabel`, `escapeRegex`, `findOutputPath`, etc. → `src/display/__tests__/utils.test.ts`
 
@@ -307,6 +322,7 @@ git add -A && git commit -m "refactor: colocate tests with source in __tests__/ 
 ### Task 7: Extract WorkspaceScanner from WorkspaceIndex
 
 **Files:**
+
 - Create: `src/state/WorkspaceScanner.ts`
 - Modify: `src/state/WorkspaceIndex.ts`
 
@@ -315,6 +331,7 @@ git add -A && git commit -m "refactor: colocate tests with source in __tests__/ 
 Create `src/state/WorkspaceScanner.ts`. Move the following methods out of WorkspaceIndex using `move_symbol_to_file_by_tsmorph` or manual extraction (since these are class methods, manual is likely needed):
 
 Methods to extract:
+
 - `indexWorkspace()` (lines 118-142)
 - `indexFolder()` (lines 147-168)
 - `indexFile()` (lines 174-253)
@@ -324,6 +341,7 @@ Methods to extract:
 - `processPendingChanges()` (lines 465-484)
 
 Properties to move:
+
 - `includeDependencies: Map<string, string[]>`
 - `indexing: boolean`
 - `fileChangeTimer: NodeJS.Timeout | null`
@@ -368,11 +386,13 @@ export default class WorkspaceScanner {
 **Step 2: Update WorkspaceIndex to delegate to WorkspaceScanner**
 
 WorkspaceIndex constructor creates a WorkspaceScanner. Public methods delegate:
+
 - `initialize()` → calls `scanner.indexWorkspace()` (via `scanner.scanFolders(folders)`)
 - `onFileChanged/Created/Deleted()` → `scanner.onFileChanged/Created/Deleted()`
 - `reindex()` → clears caches, calls `scanner.scanFolders()`
 
 WorkspaceIndex retains:
+
 - Singleton pattern (`getInstance()`)
 - Cache references (passed to scanner + resolver)
 - Query methods (`findDefinition`, `getAllSymbols`, `getIncludedSymbols`, etc.)
@@ -393,6 +413,7 @@ git add -A && git commit -m "refactor: extract WorkspaceScanner from WorkspaceIn
 ### Task 8: Extract StatusBar into display/
 
 **Files:**
+
 - Create: `src/display/StatusBar.ts`
 - Modify: `src/state/WorkspaceIndex.ts`
 - Modify: `src/extension.ts`
@@ -443,6 +464,7 @@ git add -A && git commit -m "refactor: extract StatusBar into display/ layer"
 ### Task 9: Write SymbolResolver with TDD — resolveAtPosition (single-level dot access)
 
 **Files:**
+
 - Create: `src/state/SymbolResolver.ts`
 - Create: `src/state/__tests__/symbolResolver.test.ts`
 
@@ -454,7 +476,9 @@ import { describe, it, expect, vi } from "vitest";
 import SymbolResolver from "../SymbolResolver";
 import type { ISymbolInfo } from "../types";
 
-function makeSymbol(overrides: Partial<ISymbolInfo> & { name: string }): ISymbolInfo {
+function makeSymbol(
+  overrides: Partial<ISymbolInfo> & { name: string },
+): ISymbolInfo {
   return {
     fullName: overrides.name,
     kind: "function",
@@ -467,16 +491,21 @@ describe("SymbolResolver", () => {
   describe("resolveAtPosition", () => {
     it("resolves a top-level symbol from local symbols", () => {
       const symbols: ISymbolInfo[] = [
-        makeSymbol({ name: "setup", fullName: "setup", kind: "function", line: 7 }),
+        makeSymbol({
+          name: "setup",
+          fullName: "setup",
+          kind: "function",
+          line: 7,
+        }),
       ];
       const resolver = new SymbolResolver(null as any);
       const result = resolver.resolveAtPosition(
-        "    setup();",          // lineText
-        "setup",                 // word
-        { startCharacter: 4 },   // wordRange
-        "",                      // documentSource
-        7,                       // cursorLine
-        symbols,                 // localSymbols
+        "    setup();", // lineText
+        "setup", // word
+        { startCharacter: 4 }, // wordRange
+        "", // documentSource
+        7, // cursorLine
+        symbols, // localSymbols
         { fsPath: "/test.cnx" } as any, // documentUri
       );
       expect(result).toBeDefined();
@@ -487,7 +516,13 @@ describe("SymbolResolver", () => {
     it("resolves a member access like Ossm.setup", () => {
       const symbols: ISymbolInfo[] = [
         makeSymbol({ name: "Ossm", kind: "namespace", line: 1 }),
-        makeSymbol({ name: "setup", parent: "Ossm", fullName: "Ossm_setup", kind: "function", line: 5 }),
+        makeSymbol({
+          name: "setup",
+          parent: "Ossm",
+          fullName: "Ossm_setup",
+          kind: "function",
+          line: 5,
+        }),
       ];
       const resolver = new SymbolResolver(null as any);
       const result = resolver.resolveAtPosition(
@@ -508,7 +543,13 @@ describe("SymbolResolver", () => {
     it("resolves a scope name before the dot like Ossm in Ossm.setup", () => {
       const symbols: ISymbolInfo[] = [
         makeSymbol({ name: "Ossm", kind: "namespace", line: 1 }),
-        makeSymbol({ name: "setup", parent: "Ossm", fullName: "Ossm_setup", kind: "function", line: 5 }),
+        makeSymbol({
+          name: "setup",
+          parent: "Ossm",
+          fullName: "Ossm_setup",
+          kind: "function",
+          line: 5,
+        }),
       ];
       const resolver = new SymbolResolver(null as any);
       const result = resolver.resolveAtPosition(
@@ -539,7 +580,11 @@ Expected: FAIL — module not found
 // src/state/SymbolResolver.ts
 import * as vscode from "vscode";
 import type { ISymbolInfo } from "./types";
-import { extractTrailingWord, findSymbolByName, findSymbolWithFallback } from "./utils";
+import {
+  extractTrailingWord,
+  findSymbolByName,
+  findSymbolWithFallback,
+} from "./utils";
 import type WorkspaceIndex from "./WorkspaceIndex";
 
 export interface IResolvedSymbol extends ISymbolInfo {
@@ -606,6 +651,7 @@ git add -A && git commit -m "feat: add SymbolResolver with basic local symbol re
 ### Task 10: Add this/global resolution to SymbolResolver
 
 **Files:**
+
 - Modify: `src/state/__tests__/symbolResolver.test.ts`
 - Modify: `src/state/SymbolResolver.ts`
 
@@ -618,7 +664,13 @@ it("resolves this.foo to current scope member", () => {
   const source = "scope MyScope {\n  void foo() {\n    this.bar();\n  }\n}";
   const symbols: ISymbolInfo[] = [
     makeSymbol({ name: "MyScope", kind: "namespace", line: 1 }),
-    makeSymbol({ name: "bar", parent: "MyScope", fullName: "MyScope_bar", kind: "function", line: 3 }),
+    makeSymbol({
+      name: "bar",
+      parent: "MyScope",
+      fullName: "MyScope_bar",
+      kind: "function",
+      line: 3,
+    }),
   ];
   const resolver = new SymbolResolver(null as any);
   const result = resolver.resolveAtPosition(
@@ -668,7 +720,10 @@ import ScopeTracker from "./ScopeTracker";
 
 // Resolve this/global
 if (parentName === "this") {
-  const enclosingScope = ScopeTracker.getCurrentScope(documentSource, cursorLine);
+  const enclosingScope = ScopeTracker.getCurrentScope(
+    documentSource,
+    cursorLine,
+  );
   if (enclosingScope) {
     parentName = enclosingScope;
   }
@@ -693,6 +748,7 @@ git add -A && git commit -m "feat: add this/global resolution to SymbolResolver"
 ### Task 11: Add cross-file resolution to SymbolResolver
 
 **Files:**
+
 - Modify: `src/state/__tests__/symbolResolver.test.ts`
 - Modify: `src/state/SymbolResolver.ts`
 
@@ -702,7 +758,12 @@ git add -A && git commit -m "feat: add this/global resolution to SymbolResolver"
 it("falls back to workspace for cross-file symbol", () => {
   const mockWorkspaceIndex = {
     findDefinition: vi.fn().mockReturnValue(
-      makeSymbol({ name: "Motor", kind: "namespace", line: 5, sourceFile: "/other.cnx" }),
+      makeSymbol({
+        name: "Motor",
+        kind: "namespace",
+        line: 5,
+        sourceFile: "/other.cnx",
+      }),
     ),
     getAllSymbols: vi.fn().mockReturnValue([]),
   };
@@ -723,8 +784,12 @@ it("falls back to workspace for cross-file symbol", () => {
 
 it("resolves cross-file member access with parent", () => {
   const motorSetup = makeSymbol({
-    name: "setup", parent: "Motor", fullName: "Motor_setup",
-    kind: "function", line: 10, sourceFile: "/motor.cnx",
+    name: "setup",
+    parent: "Motor",
+    fullName: "Motor_setup",
+    kind: "function",
+    line: 10,
+    sourceFile: "/motor.cnx",
   });
   const mockWorkspaceIndex = {
     findDefinition: vi.fn().mockReturnValue(undefined),
@@ -760,7 +825,9 @@ After local symbol search, add workspace fallback:
 if (this.workspaceIndex) {
   if (parentName) {
     const wsSymbol = findSymbolByName(
-      this.workspaceIndex.getAllSymbols(), word, parentName
+      this.workspaceIndex.getAllSymbols(),
+      word,
+      parentName,
     );
     if (wsSymbol) return { ...wsSymbol, source: "workspace" };
   }
@@ -786,6 +853,7 @@ git add -A && git commit -m "feat: add cross-file resolution to SymbolResolver"
 ### Task 12: Add full chain resolution to SymbolResolver
 
 **Files:**
+
 - Modify: `src/state/__tests__/symbolResolver.test.ts`
 - Modify: `src/state/SymbolResolver.ts`
 
@@ -796,9 +864,27 @@ describe("resolveChain", () => {
   it("resolves this.GPIO7.DataRegister chain", () => {
     const symbols: ISymbolInfo[] = [
       makeSymbol({ name: "MyScope", kind: "namespace", line: 1 }),
-      makeSymbol({ name: "GPIO7", parent: "MyScope", kind: "register", fullName: "MyScope_GPIO7", line: 2 }),
-      makeSymbol({ name: "DataRegister", parent: "MyScope_GPIO7", kind: "register", fullName: "MyScope_GPIO7_DataRegister", line: 3 }),
-      makeSymbol({ name: "SET", parent: "MyScope_GPIO7_DataRegister", kind: "field", fullName: "MyScope_GPIO7_DataRegister_SET", line: 4 }),
+      makeSymbol({
+        name: "GPIO7",
+        parent: "MyScope",
+        kind: "register",
+        fullName: "MyScope_GPIO7",
+        line: 2,
+      }),
+      makeSymbol({
+        name: "DataRegister",
+        parent: "MyScope_GPIO7",
+        kind: "register",
+        fullName: "MyScope_GPIO7_DataRegister",
+        line: 3,
+      }),
+      makeSymbol({
+        name: "SET",
+        parent: "MyScope_GPIO7_DataRegister",
+        kind: "field",
+        fullName: "MyScope_GPIO7_DataRegister_SET",
+        line: 4,
+      }),
     ];
     const resolver = new SymbolResolver(null as any);
     const result = resolver.resolveChain(
@@ -824,11 +910,11 @@ describe("findMembers", () => {
       getIncludedSymbols: vi.fn().mockReturnValue([]),
     };
     const resolver = new SymbolResolver(mockWorkspaceIndex as any);
-    const result = resolver.findMembers(
-      "Ossm", symbols, { fsPath: "/test.cnx" } as any,
-    );
+    const result = resolver.findMembers("Ossm", symbols, {
+      fsPath: "/test.cnx",
+    } as any);
     expect(result).toHaveLength(2);
-    expect(result.map(s => s.name)).toEqual(["setup", "loop"]);
+    expect(result.map((s) => s.name)).toEqual(["setup", "loop"]);
   });
 });
 ```
@@ -906,6 +992,7 @@ git add -A && git commit -m "feat: add chain resolution and findMembers to Symbo
 ### Task 13: Refactor DefinitionProvider to use SymbolResolver
 
 **Files:**
+
 - Modify: `src/display/DefinitionProvider.ts`
 - Create: `src/display/__tests__/definitionProvider.test.ts`
 
@@ -976,12 +1063,14 @@ git add -A && git commit -m "refactor: DefinitionProvider uses SymbolResolver fo
 ### Task 14: Refactor HoverProvider to use SymbolResolver
 
 **Files:**
+
 - Modify: `src/display/HoverProvider.ts`
 - Modify: `src/display/__tests__/hoverProvider.test.ts`
 
 **Step 1: Replace resolution block with SymbolResolver**
 
 In `provideHover()`, replace lines that do:
+
 - Dot extraction (charBefore, extractTrailingWord)
 - `this`/`global` resolution (ScopeTracker calls)
 - `findSymbolByName(symbols, word, parentName)`
@@ -993,8 +1082,13 @@ With a single call:
 
 ```typescript
 const resolved = this.resolver.resolveAtPosition(
-  lineText, word, { startCharacter: wordRange.start.character },
-  source, position.line, symbols, document.uri,
+  lineText,
+  word,
+  { startCharacter: wordRange.start.character },
+  source,
+  position.line,
+  symbols,
+  document.uri,
 );
 ```
 
@@ -1026,17 +1120,20 @@ git add -A && git commit -m "refactor: HoverProvider uses SymbolResolver for res
 ### Task 15: Refactor CompletionProvider to use SymbolResolver
 
 **Files:**
+
 - Modify: `src/display/CompletionProvider.ts`
 - Modify: `src/display/__tests__/completionProvider.test.ts`
 
 **Step 1: Replace chain resolution with SymbolResolver**
 
 In CompletionProvider, replace:
+
 - `resolveChainedAccess()` method (lines 476-533) with `resolver.resolveChain()`
 - Member symbol filtering with `resolver.findMembers()`
 - Direct `ScopeTracker.getCurrentScope()` calls for `this`/`global` (handled by resolver)
 
 Keep:
+
 - `getMemberCompletions()` structure (it formats CompletionItems)
 - `getGlobalCompletions()` (top-level completions, different concern)
 - All CompletionItem creation/sorting logic
@@ -1082,6 +1179,7 @@ Run: `npm run compile && npm run lint && npm run prettier:check && npm test`
 **Step 3: Verify the original bug is fixed**
 
 The original issue — Ctrl+Click on `Ossm.setup()` not working — should now be resolved because:
+
 - DefinitionProvider calls `resolver.resolveAtPosition()` which handles parent-aware cross-file lookup
 - `resolveAtPosition` detects `parentName = "Ossm"`, searches workspace symbols for `name === "setup" && parent === "Ossm"`
 - Returns the symbol from `ossm.cnx` with `sourceFile` set

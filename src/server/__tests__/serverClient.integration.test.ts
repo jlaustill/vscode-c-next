@@ -5,7 +5,11 @@
  */
 
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { describeIntegration, startServerClient, loadFixture } from "../../__tests__/helpers";
+import {
+  describeIntegration,
+  startServerClient,
+  loadFixture,
+} from "../../__tests__/helpers";
 import CNextServerClient from "../CNextServerClient";
 
 describeIntegration("ServerClient Integration", () => {

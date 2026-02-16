@@ -1,6 +1,4 @@
-import {
-  trackBraces
-} from "./utils";
+import { trackBraces } from "./utils";
 import { isWordChar } from "./utils";
 import { extractTrailingWord } from "./utils";
 import { stripComments } from "./utils";
