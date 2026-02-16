@@ -612,15 +612,36 @@ export default class CNextCompletionProvider
   /**
    * Handle ScopeName. — returns members with matching parent
    * Symbols have already been merged (local + included) by getMemberCompletions.
+   * If no direct members found and parentName is a typed variable,
+   * resolves the type and looks up members of that type (e.g. struct fields).
    */
   private getNamedMemberCompletions(
     symbols: ISymbolInfo[],
     parentName: string,
   ): vscode.CompletionItem[] {
-    const members = symbols.filter((s) => s.parent === parentName);
+    let members = symbols.filter((s) => s.parent === parentName);
     this.debug(
       `C-Next DEBUG: Found ${members.length} members with parent="${parentName}"`,
     );
+
+    // Type resolution: if parentName is a typed variable, look up members of its type
+    if (members.length === 0) {
+      const variable = symbols.find(
+        (s) =>
+          s.name === parentName &&
+          s.type &&
+          (s.kind === "variable" || s.kind === "field"),
+      );
+      if (variable?.type) {
+        this.debug(
+          `C-Next DEBUG: "${parentName}" is typed as "${variable.type}", looking up type members`,
+        );
+        members = symbols.filter((s) => s.parent === variable.type);
+        this.debug(
+          `C-Next DEBUG: Found ${members.length} members for type "${variable.type}"`,
+        );
+      }
+    }
 
     if (members.length > 0) {
       return members.map(createSymbolCompletion);
