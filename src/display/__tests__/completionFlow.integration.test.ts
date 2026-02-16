@@ -19,6 +19,7 @@ import {
 import CNextServerClient from "../../server/CNextServerClient";
 import type { ISymbolInfo } from "../../server/CNextServerClient";
 import WorkspaceIndex from "../../state/WorkspaceIndex";
+import SymbolResolver from "../../state/SymbolResolver";
 import CNextCompletionProvider from "../CompletionProvider";
 
 /**
@@ -79,7 +80,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/LED.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -101,7 +102,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/LED.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -120,7 +121,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/LED.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -138,7 +139,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/enum.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -165,7 +166,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/LED.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -188,7 +189,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/enum.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -213,7 +214,7 @@ describeIntegration("Completion Flow Integration", () => {
     it("Driver. from main.cnx shows members via include", async () => {
       index = createWorkspaceIndex(client);
       await initializeWithFixtureDir(index, "cross-file");
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       // Index main.cnx (triggers indexing of driver.cnx via include)
       const { uri: mainUri, content: mainContent } = loadFixture(
@@ -251,7 +252,7 @@ describeIntegration("Completion Flow Integration", () => {
       const result = await client.parseSymbols(content, "/test/driver.cnx");
 
       index = createWorkspaceIndex(client);
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const items = getMemberCompletions(
         provider,
@@ -272,7 +273,7 @@ describeIntegration("Completion Flow Integration", () => {
     it("shows top-level symbols from included files", async () => {
       index = createWorkspaceIndex(client);
       await initializeWithFixtureDir(index, "global-symbols");
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const { uri: mainUri, content: mainContent } = loadFixture(
         "global-symbols",
@@ -306,7 +307,7 @@ describeIntegration("Completion Flow Integration", () => {
     it("Leaf. from top.cnx returns empty (transitive — not yet supported)", async () => {
       index = createWorkspaceIndex(client);
       await initializeWithFixtureDir(index, "transitive-include");
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const { uri: topUri, content: topContent } = loadFixture(
         "transitive-include",
@@ -332,7 +333,7 @@ describeIntegration("Completion Flow Integration", () => {
     it("Leaf. from middle.cnx returns members (direct include works)", async () => {
       index = createWorkspaceIndex(client);
       await initializeWithFixtureDir(index, "transitive-include");
-      provider = new CNextCompletionProvider(index);
+      provider = new CNextCompletionProvider(new SymbolResolver(index), index);
 
       const { uri: middleUri, content: middleContent } = loadFixture(
         "transitive-include",

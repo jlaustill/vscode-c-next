@@ -304,16 +304,20 @@ export async function activate(
 
   context.subscriptions.push(openPreview, openPreviewToSide);
 
+  // Create shared SymbolResolver (reusable by multiple providers)
+  const symbolResolver = new SymbolResolver(workspaceIndex);
+
   // Register completion provider
   const completionProvider = vscode.languages.registerCompletionItemProvider(
     "cnext",
-    new CNextCompletionProvider(workspaceIndex, extensionContext),
+    new CNextCompletionProvider(
+      symbolResolver,
+      workspaceIndex,
+      extensionContext,
+    ),
     ".", // Trigger on dot for member access
   );
   context.subscriptions.push(completionProvider);
-
-  // Create shared SymbolResolver (reusable by multiple providers)
-  const symbolResolver = new SymbolResolver(workspaceIndex);
 
   // Register hover provider
   const hoverProvider = vscode.languages.registerHoverProvider(

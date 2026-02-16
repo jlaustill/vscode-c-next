@@ -3,18 +3,13 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { ISymbolInfo } from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
+import SymbolResolver from "../state/SymbolResolver";
 import CNextExtensionContext from "../ExtensionContext";
-import {
-  MIN_PREFIX_LENGTH_FOR_CPP_QUERY
-} from "../constants/minPrefixLengthForCppQuery";
+import { MIN_PREFIX_LENGTH_FOR_CPP_QUERY } from "../constants/minPrefixLengthForCppQuery";
 import ScopeTracker from "../state/ScopeTracker";
 import { extractTrailingWord } from "../state/utils";
 import { parseMemberAccessChain } from "../state/utils";
 import { countBraceChange } from "../state/utils";
-import { findSymbolByName } from "../state/utils";
-import { concatParentName } from "../state/utils";
-import { resolveChainStart } from "../state/utils";
-import { resolveNextParent } from "../state/utils";
 import { getAccessDescription } from "./utils";
 import { getCompletionLabel } from "./utils";
 import { escapeRegex } from "./utils";
@@ -300,6 +295,7 @@ export default class CNextCompletionProvider
   implements vscode.CompletionItemProvider
 {
   constructor(
+    private readonly resolver: SymbolResolver,
     private readonly workspaceIndex?: WorkspaceIndex,
     private readonly extensionContext?: CNextExtensionContext,
   ) {}
@@ -401,6 +397,8 @@ export default class CNextCompletionProvider
         currentScope,
         currentFunction,
         document.uri,
+        source,
+        position.line,
       );
       this.debug(
         `C-Next DEBUG: getMemberCompletions returned ${cnextMembers.length} items`,
@@ -465,74 +463,6 @@ export default class CNextCompletionProvider
   }
 
   /**
-   * Resolve a chained member access path like "this.GPIO7.DataRegister" to the fully qualified parent name
-   * Uses TYPE-AWARE resolution: looks up each symbol's type to determine the next parent
-   *
-   * @param chain Array of identifiers like ["this", "GPIO7", "DataRegister"]
-   * @param currentScope The current scope name (e.g., "Teensy4")
-   * @param symbols Available symbols for lookup
-   * @returns Fully qualified parent name for finding members, or null if invalid
-   */
-  private resolveChainedAccess(
-    chain: string[],
-    currentScope: string | null,
-    symbols: ISymbolInfo[],
-  ): string | null {
-    if (chain.length === 0) return null;
-
-    // Resolve starting point based on first element
-    const startResult = resolveChainStart(chain[0], currentScope);
-    if (!startResult) return null;
-    if (chain[0] === "global" && chain.length === 1) return null;
-
-    let currentParent = startResult.parent;
-    const startIndex = startResult.startIndex;
-
-    this.debug(
-      `C-Next DEBUG: Resolving chain [${chain.join(", ")}], starting parent="${currentParent}"`,
-    );
-
-    // Resolve each element using type-aware lookup
-    for (let i = startIndex; i < chain.length; i++) {
-      const memberName = chain[i];
-      const parentConstraint = currentParent === "" ? null : currentParent;
-      const symbol = findSymbolByName(symbols, memberName, parentConstraint);
-
-      this.debug(
-        `C-Next DEBUG:   Step ${i}: Looking for "${memberName}" with parent="${currentParent}" -> ${
-          symbol
-            ? `found (kind=${symbol.kind}, type=${symbol.type})`
-            : "not found"
-        }`,
-      );
-
-      if (!symbol) {
-        // Fallback: underscore concatenation
-        currentParent = concatParentName(currentParent, memberName);
-        this.debug(
-          `C-Next DEBUG:   Fallback: concatenated to "${currentParent}"`,
-        );
-        continue;
-      }
-
-      // Resolve next parent based on symbol type
-      currentParent = resolveNextParent(
-        symbol,
-        currentParent,
-        memberName,
-        currentScope,
-        symbols,
-      );
-      this.debug(`C-Next DEBUG:   Resolved to parent="${currentParent}"`);
-    }
-
-    this.debug(
-      `C-Next DEBUG: Resolved chain [${chain.join(", ")}] to "${currentParent}"`,
-    );
-    return currentParent;
-  }
-
-  /**
    * Get completions for member access (after a dot)
    * Handles special keywords: this (current scope) and global (top-level)
    * Supports chained access like this.GPIO7.
@@ -541,6 +471,8 @@ export default class CNextCompletionProvider
    * @param chain The member access chain (e.g., ["this", "GPIO7"] for "this.GPIO7.")
    * @param currentScope Current scope name (e.g., "Teensy4")
    * @param currentFunction Current function name (to filter out - no recursion)
+   * @param source Document source text for scope resolution
+   * @param line Cursor line number for scope resolution
    */
   private getMemberCompletions(
     symbols: ISymbolInfo[],
@@ -548,6 +480,8 @@ export default class CNextCompletionProvider
     currentScope: string | null,
     currentFunction: string | null,
     documentUri?: vscode.Uri,
+    source?: string,
+    line?: number,
   ): vscode.CompletionItem[] {
     // Merge symbols from included files for cross-file member access
     if (this.workspaceIndex && documentUri) {
@@ -586,7 +520,14 @@ export default class CNextCompletionProvider
     }
 
     // Handle chained access (e.g., this.GPIO7.)
-    return this.getChainedCompletions(chain, currentScope, symbols);
+    return this.getChainedCompletions(
+      chain,
+      currentScope,
+      symbols,
+      documentUri,
+      source,
+      line,
+    );
   }
 
   /**
@@ -663,6 +604,7 @@ export default class CNextCompletionProvider
 
   /**
    * Handle ScopeName. — returns members with matching parent
+   * Symbols have already been merged (local + included) by getMemberCompletions.
    */
   private getNamedMemberCompletions(
     symbols: ISymbolInfo[],
@@ -677,18 +619,6 @@ export default class CNextCompletionProvider
       return members.map(createSymbolCompletion);
     }
 
-    // Check if parentName is a known namespace/class/register
-    const parentSymbol = symbols.find(
-      (s) => s.name === parentName && !s.parent,
-    );
-    if (parentSymbol) {
-      const memberSymbols = symbols.filter((s) => s.parent === parentName);
-      this.debug(
-        `C-Next DEBUG: Found parent symbol "${parentName}", ${memberSymbols.length} members`,
-      );
-      return memberSymbols.map(createSymbolCompletion);
-    }
-
     this.debug(`C-Next DEBUG: No members found for parent="${parentName}"`);
     return [];
   }
@@ -700,11 +630,25 @@ export default class CNextCompletionProvider
     chain: string[],
     currentScope: string | null,
     symbols: ISymbolInfo[],
+    documentUri?: vscode.Uri,
+    source?: string,
+    line?: number,
   ): vscode.CompletionItem[] {
-    const resolvedParent = this.resolveChainedAccess(
+    // When source is not available but currentScope is known (e.g., direct test calls),
+    // synthesize a minimal source that makes ScopeTracker resolve "this" correctly.
+    let effectiveSource = source ?? "";
+    let effectiveLine = line ?? 0;
+    if (!source && currentScope) {
+      effectiveSource = `scope ${currentScope} {\n`;
+      effectiveLine = 1;
+    }
+
+    const resolvedParent = this.resolver.resolveChain(
       chain,
-      currentScope,
+      effectiveSource,
+      effectiveLine,
       symbols,
+      documentUri ?? vscode.Uri.file(""),
     );
     if (!resolvedParent) {
       this.debug(`C-Next DEBUG: Could not resolve chain [${chain.join(", ")}]`);
@@ -715,7 +659,11 @@ export default class CNextCompletionProvider
       `C-Next DEBUG: Looking for members with parent="${resolvedParent}"`,
     );
 
-    const members = symbols.filter((s) => s.parent === resolvedParent);
+    const members = this.resolver.findMembers(
+      resolvedParent,
+      symbols,
+      documentUri ?? vscode.Uri.file(""),
+    );
     this.debug(
       `C-Next DEBUG: Found ${members.length} members for resolved parent "${resolvedParent}"`,
     );

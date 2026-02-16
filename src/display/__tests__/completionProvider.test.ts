@@ -7,6 +7,7 @@ import CNextCompletionProvider, {
 } from "../CompletionProvider";
 import type { ISymbolInfo } from "../../server/CNextServerClient";
 import WorkspaceIndex from "../../state/WorkspaceIndex";
+import SymbolResolver from "../../state/SymbolResolver";
 
 describe("CNextCompletionProvider", () => {
   it("should not write debug files to /tmp", () => {
@@ -138,7 +139,8 @@ function names(items: vscode.CompletionItem[]): string[] {
 }
 
 describe("getMemberCompletions", () => {
-  const provider = new CNextCompletionProvider();
+  const resolver = new SymbolResolver(null);
+  const provider = new CNextCompletionProvider(resolver);
 
   const scopeSymbols: ISymbolInfo[] = [
     { name: "LED", fullName: "LED", kind: "namespace" },
@@ -380,7 +382,11 @@ describe("getMemberCompletions", () => {
       internals.includeDependencies.set(mainUri.fsPath, [driverUri.fsPath]);
 
       // Create provider with the workspaceIndex
-      const providerWithIndex = new CNextCompletionProvider(index);
+      const resolverWithIndex = new SymbolResolver(index);
+      const providerWithIndex = new CNextCompletionProvider(
+        resolverWithIndex,
+        index,
+      );
 
       // Call getMemberCompletions with documentUri — should merge included symbols
       const items = (
