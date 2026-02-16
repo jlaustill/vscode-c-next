@@ -1,84 +1,19 @@
 import { describe, it, expect } from "vitest";
-import {
-  escapeRegex
-} from "../display/utils";
-import { isWordChar } from "../state/utils";
-import { extractTrailingWord } from "../state/utils";
-import { parseMemberAccessChain } from "../state/utils";
-import { stripComments } from "../state/utils";
-import { isCommentLine } from "../state/utils";
-import { countBraceChange } from "../state/utils";
-import { trackBraces } from "../state/utils";
-import { IMinimalSymbol } from "../state/utils";
-import { findSymbolByName } from "../state/utils";
-import { findSymbolByFullName } from "../state/utils";
-import { findSymbolWithFallback } from "../state/utils";
-import { concatParentName } from "../state/utils";
-import { buildQualifiedName } from "../state/utils";
-import { resolveChainStart } from "../state/utils";
-import { resolveNextParent } from "../state/utils";
-import { getAccessDescription } from "../display/utils";
-import { getCompletionLabel } from "../display/utils";
-
-describe("getAccessDescription", () => {
-  it("returns read-write for rw", () => {
-    expect(getAccessDescription("rw")).toBe("read-write");
-  });
-
-  it("returns read-only for ro", () => {
-    expect(getAccessDescription("ro")).toBe("read-only");
-  });
-
-  it("returns write-only for wo", () => {
-    expect(getAccessDescription("wo")).toBe("write-only");
-  });
-
-  it("returns write-1-to-clear for w1c", () => {
-    expect(getAccessDescription("w1c")).toBe("write-1-to-clear");
-  });
-
-  it("returns write-1-to-set for w1s", () => {
-    expect(getAccessDescription("w1s")).toBe("write-1-to-set");
-  });
-
-  it("returns the input for unknown access types", () => {
-    expect(getAccessDescription("custom")).toBe("custom");
-  });
-});
-
-describe("getCompletionLabel", () => {
-  it("returns a plain string label as-is", () => {
-    expect(getCompletionLabel("myLabel")).toBe("myLabel");
-  });
-
-  it("extracts label from an object", () => {
-    expect(getCompletionLabel({ label: "myLabel", description: "desc" })).toBe(
-      "myLabel",
-    );
-  });
-
-  it("extracts label from an object without description", () => {
-    expect(getCompletionLabel({ label: "onlyLabel" })).toBe("onlyLabel");
-  });
-});
-
-describe("escapeRegex", () => {
-  it("escapes special regex characters", () => {
-    expect(escapeRegex("hello.world")).toBe("hello\\.world");
-    expect(escapeRegex("a+b*c?d")).toBe("a\\+b\\*c\\?d");
-    expect(escapeRegex("foo[bar]")).toBe("foo\\[bar\\]");
-    expect(escapeRegex("a^b$c")).toBe("a\\^b\\$c");
-    expect(escapeRegex("a{b}c")).toBe("a\\{b\\}c");
-    expect(escapeRegex("a|b")).toBe("a\\|b");
-    expect(escapeRegex("a(b)c")).toBe("a\\(b\\)c");
-    expect(escapeRegex("a\\b")).toBe("a\\\\b");
-  });
-
-  it("leaves plain strings unchanged", () => {
-    expect(escapeRegex("hello")).toBe("hello");
-    expect(escapeRegex("Serial")).toBe("Serial");
-  });
-});
+import { isWordChar } from "../utils";
+import { extractTrailingWord } from "../utils";
+import { parseMemberAccessChain } from "../utils";
+import { stripComments } from "../utils";
+import { isCommentLine } from "../utils";
+import { countBraceChange } from "../utils";
+import { trackBraces } from "../utils";
+import { IMinimalSymbol } from "../utils";
+import { findSymbolByName } from "../utils";
+import { findSymbolByFullName } from "../utils";
+import { findSymbolWithFallback } from "../utils";
+import { concatParentName } from "../utils";
+import { buildQualifiedName } from "../utils";
+import { resolveChainStart } from "../utils";
+import { resolveNextParent } from "../utils";
 
 // ============================================================================
 // Comment Utilities

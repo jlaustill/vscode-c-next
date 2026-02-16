@@ -15,11 +15,11 @@ import {
   loadFixture,
   completionNames,
   initializeWithFixtureDir,
-} from "./helpers";
+} from "../../__tests__/helpers";
 import CNextServerClient from "../../server/CNextServerClient";
 import type { ISymbolInfo } from "../../server/CNextServerClient";
 import WorkspaceIndex from "../../state/WorkspaceIndex";
-import CNextCompletionProvider from "../../display/CompletionProvider";
+import CNextCompletionProvider from "../CompletionProvider";
 
 /**
  * Access the private getMemberCompletions method on the provider

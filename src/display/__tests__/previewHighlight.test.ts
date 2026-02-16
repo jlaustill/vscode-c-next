@@ -3,7 +3,7 @@ import {
   highlightLineComments,
   highlightQuotedStrings,
   highlightPreprocessor,
-} from "../display/PreviewProvider";
+} from "../PreviewProvider";
 
 describe("highlightLineComments", () => {
   it("wraps line comments in a span", () => {

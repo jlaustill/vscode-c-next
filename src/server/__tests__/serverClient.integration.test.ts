@@ -5,8 +5,8 @@
  */
 
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { describeIntegration, startServerClient, loadFixture } from "./helpers";
-import CNextServerClient from "../../server/CNextServerClient";
+import { describeIntegration, startServerClient, loadFixture } from "../../__tests__/helpers";
+import CNextServerClient from "../CNextServerClient";
 
 describeIntegration("ServerClient Integration", () => {
   let client: CNextServerClient;

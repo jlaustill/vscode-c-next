@@ -12,9 +12,9 @@ import {
   loadFixture,
   getWorkspaceInternals,
   initializeWithFixtureDir,
-} from "./helpers";
+} from "../../__tests__/helpers";
 import CNextServerClient from "../../server/CNextServerClient";
-import WorkspaceIndex from "../../state/WorkspaceIndex";
+import WorkspaceIndex from "../WorkspaceIndex";
 
 describeIntegration("WorkspaceIndex Integration", () => {
   let client: CNextServerClient;

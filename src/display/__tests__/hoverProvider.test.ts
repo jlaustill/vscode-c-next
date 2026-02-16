@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as vscode from "vscode";
-import CNextHoverProvider from "../display/HoverProvider";
-import type CNextExtensionContext from "../ExtensionContext";
+import CNextHoverProvider from "../HoverProvider";
+import type CNextExtensionContext from "../../ExtensionContext";
 
 /**
  * Create a mock extension context with a parseSymbols stub

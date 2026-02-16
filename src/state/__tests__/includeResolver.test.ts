@@ -12,7 +12,7 @@ vi.mock("vscode", () => ({
   },
 }));
 
-import IncludeResolver from "../state/IncludeResolver";
+import IncludeResolver from "../IncludeResolver";
 
 describe("IncludeResolver path boundary validation", () => {
   let tmpDir: string;

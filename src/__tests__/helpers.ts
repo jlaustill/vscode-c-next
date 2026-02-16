@@ -7,9 +7,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe } from "vitest";
 import * as vscode from "vscode";
-import CNextServerClient from "../../server/CNextServerClient";
-import WorkspaceIndex from "../../state/WorkspaceIndex";
-import type { ISymbolInfo } from "../../state/types";
+import CNextServerClient from "../server/CNextServerClient";
+import WorkspaceIndex from "../state/WorkspaceIndex";
+import type { ISymbolInfo } from "../state/types";
 
 export const FIXTURES_DIR = path.resolve(__dirname, "fixtures");
 

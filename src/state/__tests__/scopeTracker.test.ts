@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import ScopeTracker from "../state/ScopeTracker";
+import ScopeTracker from "../ScopeTracker";
 
 const SAMPLE_SOURCE = `
 u32 globalVar;

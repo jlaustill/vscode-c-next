@@ -4,14 +4,14 @@ import * as vscode from "vscode";
 import CNextCompletionProvider, {
   mapToCompletionKind,
   type TSymbolKind,
-} from "../display/CompletionProvider";
-import type { ISymbolInfo } from "../server/CNextServerClient";
-import WorkspaceIndex from "../state/WorkspaceIndex";
+} from "../CompletionProvider";
+import type { ISymbolInfo } from "../../server/CNextServerClient";
+import WorkspaceIndex from "../../state/WorkspaceIndex";
 
 describe("CNextCompletionProvider", () => {
   it("should not write debug files to /tmp", () => {
     const source = fs.readFileSync(
-      new URL("../display/CompletionProvider.ts", import.meta.url),
+      new URL("../CompletionProvider.ts", import.meta.url),
       "utf-8",
     );
     expect(source).not.toContain("/tmp/cnext-completions.txt");
