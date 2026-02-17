@@ -145,6 +145,8 @@ export default class WorkspaceScanner {
 
       // Add source file path to each symbol
       const symbolsWithFile: ISymbolInfo[] = result.symbols.map((s) => ({
+        id: s.id,
+        parentId: s.parentId,
         name: s.name,
         fullName: s.fullName,
         kind: s.kind,
