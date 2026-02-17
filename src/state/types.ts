@@ -12,6 +12,10 @@ export interface ISymbolInfo {
   name: string;
   /** Full qualified name (e.g., "LED_toggle", "GPIO7_DR_SET") */
   fullName: string;
+  /** Dot-path unique identifier (e.g. "LED.toggle") */
+  id?: string;
+  /** Dot-path parent identifier (e.g. "LED") */
+  parentId?: string;
   /** Kind of symbol */
   kind: string;
   /** Type of the symbol (e.g., "void", "u32") */

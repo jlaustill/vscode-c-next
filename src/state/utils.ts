@@ -246,6 +246,8 @@ export function trackBraces(text: string, startDepth: number): BraceState {
 export interface IMinimalSymbol {
   name: string;
   fullName: string;
+  id?: string;
+  parentId?: string;
   kind: string;
   type?: string;
   parent?: string;

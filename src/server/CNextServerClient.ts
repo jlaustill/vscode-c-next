@@ -30,6 +30,8 @@ export interface ITranspileResult {
 export interface ISymbolInfo {
   name: string;
   fullName: string;
+  id?: string;
+  parentId?: string;
   kind: string;
   type?: string;
   parent?: string;
