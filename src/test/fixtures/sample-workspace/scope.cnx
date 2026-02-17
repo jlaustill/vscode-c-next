@@ -1,0 +1,17 @@
+// Scope and struct fixture for provider tests
+struct Point {
+  i32 x;
+  i32 y;
+}
+
+scope LED {
+  bool state <- false;
+
+  public void on() {
+    state <- true;
+  }
+
+  public void off() {
+    state <- false;
+  }
+}

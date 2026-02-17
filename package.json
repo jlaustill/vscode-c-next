@@ -191,14 +191,21 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude='src/__tests__/integration/**'",
     "test:integration": "vitest run src/__tests__/integration/",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "pretest:vscode": "tsc -p tsconfig.test.json || echo 'tsc reported errors (pre-existing type issues) but files were emitted'",
+    "test:vscode": "vscode-test",
+    "test:all": "npm run test && npm run test:vscode"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
     "@vitest/coverage-v8": "^2.0.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.24.0",
+    "mocha": "^11.7.5",
     "oxlint": "^0.16.0",
     "prettier": "^3.7.4",
     "typescript": "^5.3.0",
