@@ -1,0 +1,6 @@
+// Minimal C-Next fixture for activation tests
+u8 counter <- 0;
+
+void increment() {
+  counter <- counter + 1;
+}

@@ -1,13 +1,16 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import PreviewProvider from "./previewProvider";
-import CNextCompletionProvider from "./completionProvider";
-import CNextHoverProvider from "./hoverProvider";
-import CNextDefinitionProvider from "./definitionProvider";
-import WorkspaceIndex from "./workspace/WorkspaceIndex";
+import PreviewProvider from "./display/PreviewProvider";
+import CNextCompletionProvider from "./display/CompletionProvider";
+import CNextHoverProvider from "./display/HoverProvider";
+import CNextDefinitionProvider from "./display/DefinitionProvider";
+import WorkspaceIndex from "./state/WorkspaceIndex";
+import SymbolResolver from "./state/SymbolResolver";
 import CNextExtensionContext from "./ExtensionContext";
 import CNextServerClient from "./server/CNextServerClient";
-import { DIAGNOSTIC_DEBOUNCE_MS, EDITOR_SWITCH_DEBOUNCE_MS } from "./utils";
+import StatusBar from "./display/StatusBar";
+import { EDITOR_SWITCH_DEBOUNCE_MS } from "./constants/editorSwitchDebounceMs";
+import { DIAGNOSTIC_DEBOUNCE_MS } from "./constants/diagnosticDebounceMs";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewProvider: PreviewProvider;
@@ -244,6 +247,7 @@ export async function activate(
   }
 
   // Create status bar item for index status
+  const statusBar = new StatusBar();
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
@@ -252,7 +256,10 @@ export async function activate(
   statusBarItem.tooltip = "C-Next Workspace Index";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
-  workspaceIndex.setStatusBarItem(statusBarItem);
+  statusBar.setStatusBarItem(statusBarItem);
+  workspaceIndex.setStatusCallback((text: string) => {
+    statusBar.update(text);
+  });
 
   // Initialize the workspace index with workspace folders
   workspaceIndex.initialize([...(vscode.workspace.workspaceFolders || [])]);
@@ -297,10 +304,17 @@ export async function activate(
 
   context.subscriptions.push(openPreview, openPreviewToSide);
 
+  // Create shared SymbolResolver (reusable by multiple providers)
+  const symbolResolver = new SymbolResolver(workspaceIndex);
+
   // Register completion provider
   const completionProvider = vscode.languages.registerCompletionItemProvider(
     "cnext",
-    new CNextCompletionProvider(workspaceIndex, extensionContext),
+    new CNextCompletionProvider(
+      symbolResolver,
+      workspaceIndex,
+      extensionContext,
+    ),
     ".", // Trigger on dot for member access
   );
   context.subscriptions.push(completionProvider);
@@ -308,14 +322,14 @@ export async function activate(
   // Register hover provider
   const hoverProvider = vscode.languages.registerHoverProvider(
     "cnext",
-    new CNextHoverProvider(workspaceIndex, extensionContext),
+    new CNextHoverProvider(symbolResolver, workspaceIndex, extensionContext),
   );
   context.subscriptions.push(hoverProvider);
 
   // Register definition provider (Ctrl+Click / F12)
   const definitionProvider = vscode.languages.registerDefinitionProvider(
     "cnext",
-    new CNextDefinitionProvider(workspaceIndex, extensionContext),
+    new CNextDefinitionProvider(symbolResolver, extensionContext),
   );
   context.subscriptions.push(definitionProvider);
 

@@ -1,0 +1,1 @@
+export const MIN_PREFIX_LENGTH_FOR_CPP_QUERY = 2;

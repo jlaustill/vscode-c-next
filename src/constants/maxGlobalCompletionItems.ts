@@ -1,0 +1,1 @@
+export const MAX_GLOBAL_COMPLETION_ITEMS = 30;
