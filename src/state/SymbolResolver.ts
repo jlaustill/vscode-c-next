@@ -102,9 +102,13 @@ export default class SymbolResolver {
         }
       }
 
-      // Fall back to workspace findDefinition (unqualified cross-file)
+      // Fall back to workspace findDefinition with parent constraint
       if (this.workspaceIndex) {
-        const def = this.workspaceIndex.findDefinition(word, documentUri);
+        const def = this.workspaceIndex.findDefinition(
+          word,
+          documentUri,
+          parentName,
+        );
         if (def) {
           return { ...def, source: "workspace" };
         }
@@ -200,9 +204,9 @@ export default class SymbolResolver {
   // --------------------------------------------------------------------------
 
   /**
-   * Return all symbols whose `parent` matches `parentName`.
+   * Return all symbols whose `parentId` matches `parentName`.
    * Merges local symbols, workspace symbols, and included-file symbols.
-   * Deduplicates by fullName so the same symbol from multiple sources
+   * Deduplicates by id so the same symbol from multiple sources
    * is only returned once.
    */
   findMembers(
@@ -214,14 +218,15 @@ export default class SymbolResolver {
     const result: ISymbolInfo[] = [];
 
     const add = (sym: ISymbolInfo): void => {
-      if (seen.has(sym.fullName)) return;
-      seen.add(sym.fullName);
+      const key = sym.id ?? sym.fullName;
+      if (seen.has(key)) return;
+      seen.add(key);
       result.push(sym);
     };
 
     // Local symbols first (higher priority)
     for (const sym of localSymbols) {
-      if (sym.parent === parentName) {
+      if (sym.parentId === parentName) {
         add(sym);
       }
     }
@@ -229,14 +234,14 @@ export default class SymbolResolver {
     if (this.workspaceIndex) {
       // Workspace-wide symbols
       for (const sym of this.workspaceIndex.getAllSymbols()) {
-        if (sym.parent === parentName) {
+        if (sym.parentId === parentName) {
           add(sym);
         }
       }
 
       // Included file symbols
       for (const sym of this.workspaceIndex.getIncludedSymbols(documentUri)) {
-        if (sym.parent === parentName) {
+        if (sym.parentId === parentName) {
           add(sym);
         }
       }
@@ -266,10 +271,12 @@ export default class SymbolResolver {
       symbol?.type &&
       (symbol.kind === "variable" || symbol.kind === "field")
     ) {
-      // Check if there are actual members using this type as parent
-      const hasMembers = allSymbols.some((s) => s.parent === symbol.type);
+      // Check if there are actual members using this type as parentId
+      const typeSymbol = allSymbols.find((s) => s.name === symbol.type);
+      const typeId = typeSymbol?.id ?? symbol.type;
+      const hasMembers = allSymbols.some((s) => s.parentId === typeId);
       if (hasMembers) {
-        return symbol.type!;
+        return typeId!;
       }
     }
 
