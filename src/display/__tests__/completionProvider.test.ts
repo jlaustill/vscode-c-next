@@ -143,38 +143,46 @@ describe("getMemberCompletions", () => {
   const provider = new CNextCompletionProvider(resolver);
 
   const scopeSymbols: ISymbolInfo[] = [
-    { name: "LED", fullName: "LED", kind: "namespace" },
-    { name: "pin", fullName: "LED.pin", kind: "variable", parent: "LED" },
-    { name: "state", fullName: "LED.state", kind: "variable", parent: "LED" },
-    { name: "on", fullName: "LED.on", kind: "function", parent: "LED" },
-    { name: "off", fullName: "LED.off", kind: "function", parent: "LED" },
+    { name: "LED", fullName: "LED", id: "LED", kind: "namespace" },
+    { name: "pin", fullName: "LED.pin", id: "LED.pin", parentId: "LED", kind: "variable", parent: "LED" },
+    { name: "state", fullName: "LED.state", id: "LED.state", parentId: "LED", kind: "variable", parent: "LED" },
+    { name: "on", fullName: "LED.on", id: "LED.on", parentId: "LED", kind: "function", parent: "LED" },
+    { name: "off", fullName: "LED.off", id: "LED.off", parentId: "LED", kind: "function", parent: "LED" },
     {
       name: "toggle",
       fullName: "LED.toggle",
+      id: "LED.toggle",
+      parentId: "LED",
       kind: "function",
       parent: "LED",
     },
   ];
 
   const enumSymbols: ISymbolInfo[] = [
-    { name: "Color", fullName: "Color", kind: "enum" },
-    { name: "Red", fullName: "Color.Red", kind: "enumMember", parent: "Color" },
+    { name: "Color", fullName: "Color", id: "Color", kind: "enum" },
+    { name: "Red", fullName: "Color.Red", id: "Color.Red", parentId: "Color", kind: "enumMember", parent: "Color" },
     {
       name: "Green",
       fullName: "Color.Green",
+      id: "Color.Green",
+      parentId: "Color",
       kind: "enumMember",
       parent: "Color",
     },
     {
       name: "Blue",
       fullName: "Color.Blue",
+      id: "Color.Blue",
+      parentId: "Color",
       kind: "enumMember",
       parent: "Color",
     },
-    { name: "Display", fullName: "Display", kind: "namespace" },
+    { name: "Display", fullName: "Display", id: "Display", kind: "namespace" },
     {
       name: "currentColor",
       fullName: "Display.currentColor",
+      id: "Display.currentColor",
+      parentId: "Display",
       kind: "variable",
       parent: "Display",
       type: "Color",
@@ -182,27 +190,33 @@ describe("getMemberCompletions", () => {
     {
       name: "setColor",
       fullName: "Display.setColor",
+      id: "Display.setColor",
+      parentId: "Display",
       kind: "function",
       parent: "Display",
     },
   ];
 
   const globalSymbols: ISymbolInfo[] = [
-    { name: "Driver", fullName: "Driver", kind: "namespace" },
+    { name: "Driver", fullName: "Driver", id: "Driver", kind: "namespace" },
     {
       name: "init",
       fullName: "Driver.init",
+      id: "Driver.init",
+      parentId: "Driver",
       kind: "function",
       parent: "Driver",
     },
     {
       name: "driverVersion",
       fullName: "driverVersion",
+      id: "driverVersion",
       kind: "variable",
     },
     {
       name: "driverHelper",
       fullName: "driverHelper",
+      id: "driverHelper",
       kind: "function",
     },
   ];
@@ -366,12 +380,15 @@ describe("getMemberCompletions", () => {
           {
             name: "Motor",
             fullName: "Motor",
+            id: "Motor",
             kind: "namespace",
             parent: undefined,
           },
           {
             name: "spin",
             fullName: "Motor.spin",
+            id: "Motor.spin",
+            parentId: "Motor",
             kind: "function",
             parent: "Motor",
           },

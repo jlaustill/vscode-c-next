@@ -39,12 +39,15 @@ describe("CNextHoverProvider", () => {
         {
           name: "LED",
           fullName: "LED",
+          id: "LED",
           kind: "namespace",
           line: 1,
         },
         {
           name: "pin",
           fullName: "LED_pin",
+          id: "LED.pin",
+          parentId: "LED",
           kind: "field",
           type: "u8",
           parent: "LED",
@@ -53,6 +56,8 @@ describe("CNextHoverProvider", () => {
         {
           name: "on",
           fullName: "LED_on",
+          id: "LED.on",
+          parentId: "LED",
           kind: "function",
           type: "void",
           parent: "LED",
@@ -101,12 +106,15 @@ describe("CNextHoverProvider", () => {
         {
           name: "LED",
           fullName: "LED",
+          id: "LED",
           kind: "namespace",
           line: 1,
         },
         {
           name: "something",
           fullName: "LED_something",
+          id: "LED.something",
+          parentId: "LED",
           kind: "field",
           type: "u8",
           parent: "LED",

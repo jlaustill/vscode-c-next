@@ -28,11 +28,15 @@ function createMockExtensionContext(
  */
 function createResolver(workspaceSymbols: ISymbolInfo[] = []): SymbolResolver {
   const mockWorkspaceIndex = {
-    findDefinition: vi.fn((name: string) => {
-      return workspaceSymbols.find(
-        (s) => s.name === name || s.fullName === name,
-      );
-    }),
+    findDefinition: vi.fn(
+      (name: string, _fromFile?: unknown, parent?: string) => {
+        return workspaceSymbols.find(
+          (s) =>
+            (s.name === name || s.fullName === name) &&
+            (parent ? s.parent === parent : true),
+        );
+      },
+    ),
     getAllSymbols: vi.fn(() => workspaceSymbols),
     getIncludedSymbols: vi.fn(() => []),
   };
@@ -113,6 +117,7 @@ describe("CNextDefinitionProvider", () => {
         {
           name: "Ossm",
           fullName: "Ossm",
+          id: "Ossm",
           kind: "namespace",
           line: 1,
           sourceFile: "/project/ossm.cnx",
@@ -120,6 +125,8 @@ describe("CNextDefinitionProvider", () => {
         {
           name: "setup",
           fullName: "Ossm_setup",
+          id: "Ossm.setup",
+          parentId: "Ossm",
           kind: "function",
           type: "void",
           parent: "Ossm",

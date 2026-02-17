@@ -113,18 +113,20 @@ describe("trackBraces", () => {
 // ============================================================================
 
 const testSymbols: IMinimalSymbol[] = [
-  { name: "LED", fullName: "LED", kind: "scope" },
-  { name: "toggle", fullName: "LED_toggle", kind: "function", parent: "LED" },
-  { name: "on", fullName: "LED_on", kind: "function", parent: "LED" },
-  { name: "GPIO", fullName: "GPIO", kind: "register" },
+  { name: "LED", fullName: "LED", id: "LED", kind: "scope" },
+  { name: "toggle", fullName: "LED_toggle", id: "LED.toggle", parentId: "LED", kind: "function", parent: "LED" },
+  { name: "on", fullName: "LED_on", id: "LED.on", parentId: "LED", kind: "function", parent: "LED" },
+  { name: "GPIO", fullName: "GPIO", id: "GPIO", kind: "register" },
   {
     name: "DR",
     fullName: "GPIO_DR",
+    id: "GPIO.DR",
+    parentId: "GPIO",
     kind: "registerMember",
     parent: "GPIO",
     type: "u32",
   },
-  { name: "counter", fullName: "counter", kind: "variable", type: "u32" },
+  { name: "counter", fullName: "counter", id: "counter", kind: "variable", type: "u32" },
 ];
 
 describe("findSymbolByName", () => {
@@ -246,6 +248,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "GPIO",
       fullName: "GPIO",
+      id: "GPIO",
       kind: "register",
     };
     expect(resolveNextParent(symbol, "Scope", "GPIO", null, [])).toBe(
@@ -257,6 +260,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "Sub",
       fullName: "Sub",
+      id: "Sub",
       kind: "namespace",
     };
     expect(resolveNextParent(symbol, "Parent", "Sub", null, [])).toBe(
@@ -268,6 +272,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "field",
       fullName: "field",
+      id: "field",
       kind: "field",
     };
     expect(resolveNextParent(symbol, "Struct", "field", null, [])).toBe(
@@ -279,6 +284,8 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "Pins",
       fullName: "GPIO_Pins",
+      id: "GPIO.Pins",
+      parentId: "GPIO",
       kind: "bitmap",
       type: "u8",
     };
@@ -287,6 +294,8 @@ describe("resolveNextParent", () => {
       {
         name: "bit0",
         fullName: "GPIO_Pins_bit0",
+        id: "GPIO.Pins.bit0",
+        parentId: "GPIO.Pins",
         kind: "bitmapField",
         parent: "GPIO_Pins",
       },
@@ -300,12 +309,15 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "PinType",
     };
     const typeSymbol: IMinimalSymbol = {
       name: "PinType",
       fullName: "PinType",
+      id: "PinType",
       kind: "bitmap",
     };
     const symbols = [symbol, typeSymbol];
@@ -318,12 +330,16 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "PinType",
     };
     const typeSymbol: IMinimalSymbol = {
       name: "PinType",
       fullName: "Scope_PinType",
+      id: "Scope.PinType",
+      parentId: "Scope",
       kind: "bitmap",
       parent: "Scope",
     };
@@ -337,6 +353,8 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "UnknownType",
     };

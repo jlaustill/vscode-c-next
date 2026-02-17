@@ -11,10 +11,15 @@ import type WorkspaceIndex from "../WorkspaceIndex";
 function makeSymbol(
   overrides: Partial<ISymbolInfo> & { name: string },
 ): ISymbolInfo {
+  const id = overrides.id ?? (overrides.parent
+    ? `${overrides.parent}.${overrides.name}`
+    : overrides.name);
   return {
     fullName: overrides.fullName ?? overrides.name,
     kind: overrides.kind ?? "variable",
     line: overrides.line ?? 1,
+    id,
+    parentId: overrides.parentId ?? overrides.parent,
     ...overrides,
   };
 }
@@ -22,7 +27,11 @@ function makeSymbol(
 function makeMockWorkspaceIndex(
   overrides: Partial<{
     getAllSymbols: () => ISymbolInfo[];
-    findDefinition: (name: string, fromFile?: Uri) => ISymbolInfo | undefined;
+    findDefinition: (
+      name: string,
+      fromFile?: Uri,
+      parent?: string,
+    ) => ISymbolInfo | undefined;
     getIncludedSymbols: (uri: Uri) => ISymbolInfo[];
   }> = {},
 ): WorkspaceIndex {
@@ -275,6 +284,102 @@ describe("SymbolResolver", () => {
       expect(mockWI.findDefinition).toHaveBeenCalledWith(
         "RemoteScope",
         expect.anything(),
+      );
+    });
+
+    it("does not resolve to wrong scope when multiple scopes share method name", () => {
+      // Bug reproduction: SensorProcessor.initialize() was resolving to
+      // TimingDebugHandler.initialize() because the fallback dropped the
+      // parent constraint and returned the first name match.
+      const timingInit = makeSymbol({
+        name: "initialize",
+        fullName: "TimingDebugHandler_initialize",
+        kind: "function",
+        parent: "TimingDebugHandler",
+        line: 22,
+        sourceFile: "/project/TimingDebugHandler.cnx",
+      });
+
+      const mockWI = makeMockWorkspaceIndex({
+        // Only TimingDebugHandler's symbols are indexed —
+        // SensorProcessor's are missing (simulates indexing gap)
+        getAllSymbols: vi.fn().mockReturnValue([timingInit]),
+        findDefinition: vi.fn(
+          (name: string, _fromFile?: unknown, parent?: string) => {
+            // Real findDefinition: filters by parent when provided
+            const all = [timingInit];
+            return all.find(
+              (s) => s.name === name && (parent ? s.parent === parent : true),
+            );
+          },
+        ),
+      });
+      const resolver = new SymbolResolver(mockWI);
+
+      // "  SensorProcessor.initialize();" — word is "initialize", charBefore is '.'
+      const result = resolver.resolveAtPosition(
+        "        SensorProcessor.initialize();",
+        "initialize",
+        { startCharacter: 24 },
+        "",
+        0,
+        [],
+        Uri.file("/project/ossm.cnx"),
+      );
+
+      // Must NOT resolve to TimingDebugHandler's initialize
+      // Returning undefined is correct; returning wrong scope is a bug
+      if (result) {
+        expect(result.parent).toBe("SensorProcessor");
+        expect(result.sourceFile).not.toBe("/project/TimingDebugHandler.cnx");
+      }
+    });
+
+    it("fallback passes parent to findDefinition for correct scope resolution", () => {
+      // When getAllSymbols misses the symbol but findDefinition
+      // can find it via name + parent matching
+      const sensorInit = makeSymbol({
+        name: "initialize",
+        fullName: "SensorProcessor_initialize",
+        kind: "function",
+        parent: "SensorProcessor",
+        line: 104,
+        sourceFile: "/project/SensorProcessor.cnx",
+      });
+
+      const mockWI = makeMockWorkspaceIndex({
+        // getAllSymbols returns nothing (simulates indexing gap)
+        getAllSymbols: vi.fn().mockReturnValue([]),
+        findDefinition: vi.fn(
+          (name: string, _fromFile?: unknown, parent?: string) => {
+            const all = [sensorInit];
+            return all.find(
+              (s) => s.name === name && (parent ? s.parent === parent : true),
+            );
+          },
+        ),
+      });
+      const resolver = new SymbolResolver(mockWI);
+
+      const result = resolver.resolveAtPosition(
+        "        SensorProcessor.initialize();",
+        "initialize",
+        { startCharacter: 24 },
+        "",
+        0,
+        [],
+        Uri.file("/project/ossm.cnx"),
+      );
+
+      expect(result).toBeDefined();
+      expect(result!.name).toBe("initialize");
+      expect(result!.parent).toBe("SensorProcessor");
+      expect(result!.sourceFile).toBe("/project/SensorProcessor.cnx");
+      expect(result!.source).toBe("workspace");
+      expect(mockWI.findDefinition).toHaveBeenCalledWith(
+        "initialize",
+        expect.anything(),
+        "SensorProcessor",
       );
     });
 
