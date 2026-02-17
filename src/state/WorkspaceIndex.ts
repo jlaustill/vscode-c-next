@@ -121,18 +121,27 @@ export default class WorkspaceIndex {
    * Find a symbol definition by name
    * Returns the first matching symbol across the workspace
    * Searches .cnx files first, then included headers if fromFile is provided
+   * When parentId is provided, only matches symbols with that parentId
    */
-  findDefinition(name: string, fromFile?: vscode.Uri): ISymbolInfo | undefined {
+  findDefinition(
+    name: string,
+    fromFile?: vscode.Uri,
+    parentId?: string,
+  ): ISymbolInfo | undefined {
     const allSymbols = this.cache.getAllSymbols();
+    const matchesParent = (s: ISymbolInfo): boolean =>
+      parentId ? s.parentId === parentId : true;
 
     // First, look for an exact match on fullName in .cnx files
-    let symbol = allSymbols.find((s) => s.fullName === name);
+    let symbol = allSymbols.find(
+      (s) => s.fullName === name && matchesParent(s),
+    );
     if (symbol) {
       return symbol;
     }
 
     // Then look for a match on name in .cnx files
-    symbol = allSymbols.find((s) => s.name === name);
+    symbol = allSymbols.find((s) => s.name === name && matchesParent(s));
     if (symbol) {
       return symbol;
     }
@@ -140,7 +149,7 @@ export default class WorkspaceIndex {
     // If we have a source file context, check its included headers
     if (fromFile) {
       const includedSymbols = this.getIncludedSymbols(fromFile);
-      symbol = includedSymbols.find((s) => s.name === name);
+      symbol = includedSymbols.find((s) => s.name === name && matchesParent(s));
       if (symbol) {
         return symbol;
       }
@@ -148,7 +157,7 @@ export default class WorkspaceIndex {
 
     // Finally, check all header symbols
     const headerSymbols = this.headerCache.getAllSymbols();
-    symbol = headerSymbols.find((s) => s.name === name);
+    symbol = headerSymbols.find((s) => s.name === name && matchesParent(s));
     return symbol;
   }
 
