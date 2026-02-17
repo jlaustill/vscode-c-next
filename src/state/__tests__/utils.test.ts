@@ -154,6 +154,15 @@ describe("findSymbolByName", () => {
     expect(findSymbolByName(testSymbols, "notexist")).toBeUndefined();
     expect(findSymbolByName(testSymbols, "toggle", "Wrong")).toBeUndefined();
   });
+
+  it("matches by parentId instead of parent", () => {
+    const symbols: IMinimalSymbol[] = [
+      { id: "A.B", name: "B", fullName: "A_B", kind: "function", parent: "A", parentId: "A" },
+      { id: "B", name: "B", fullName: "B", kind: "namespace" },
+    ];
+    const result = findSymbolByName(symbols, "B", "A");
+    expect(result?.id).toBe("A.B");
+  });
 });
 
 describe("findSymbolByFullName", () => {
@@ -280,7 +289,7 @@ describe("resolveNextParent", () => {
     );
   });
 
-  it("uses fullName when children exist with that parent", () => {
+  it("uses id when children exist with that parentId", () => {
     const symbol: IMinimalSymbol = {
       name: "Pins",
       fullName: "GPIO_Pins",
@@ -301,7 +310,7 @@ describe("resolveNextParent", () => {
       },
     ];
     expect(resolveNextParent(symbol, "GPIO", "Pins", null, symbols)).toBe(
-      "GPIO_Pins",
+      "GPIO.Pins",
     );
   });
 
@@ -326,7 +335,7 @@ describe("resolveNextParent", () => {
     );
   });
 
-  it("uses scoped type name when type symbol has parent", () => {
+  it("uses type symbol id when type symbol has parent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
@@ -345,7 +354,7 @@ describe("resolveNextParent", () => {
     };
     const symbols = [symbol, typeSymbol];
     expect(resolveNextParent(symbol, "reg", "pins", "Scope", symbols)).toBe(
-      "Scope_PinType",
+      "Scope.PinType",
     );
   });
 

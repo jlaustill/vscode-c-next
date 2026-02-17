@@ -84,11 +84,13 @@ export function extractStructFields(source: string): IMinimalSymbol[] {
       }
       if (/^\w+$/.test(type) && /^\w+$/.test(name)) {
         fields.push({
+          id: `${currentStruct}.${name}`,
           name,
           fullName: `${currentStruct}_${name}`,
           kind: "field",
           type,
           parent: currentStruct,
+          parentId: currentStruct,
         });
       }
     }
@@ -264,10 +266,10 @@ export function findSymbolByName<T extends IMinimalSymbol>(
   }
   if (parent === null || parent === "") {
     // Explicitly looking for top-level symbol
-    return symbols.find((s) => s.name === name && !s.parent);
+    return symbols.find((s) => s.name === name && !s.parentId);
   }
   // Looking for symbol with specific parent
-  return symbols.find((s) => s.name === name && s.parent === parent);
+  return symbols.find((s) => s.name === name && s.parentId === parent);
 }
 
 export function findSymbolByFullName<T extends IMinimalSymbol>(
@@ -337,9 +339,9 @@ export function resolveNextParent<T extends IMinimalSymbol>(
     return concatParentName(currentParent, memberName);
   }
 
-  // If symbol has fullName and there are children using it as parent, use fullName
-  if (symbol.fullName && symbols.some((s) => s.parent === symbol.fullName)) {
-    return symbol.fullName;
+  // If symbol has id and there are children using it as parentId, use id
+  if (symbol.id && symbols.some((s) => s.parentId === symbol.id)) {
+    return symbol.id;
   }
 
   // For typed members, look up the type
@@ -354,10 +356,7 @@ export function resolveNextParent<T extends IMinimalSymbol>(
   );
 
   if (typeSymbol) {
-    // Use fully qualified name
-    return typeSymbol.parent
-      ? `${typeSymbol.parent}_${typeSymbol.name}`
-      : typeSymbol.name;
+    return typeSymbol.id ?? typeSymbol.name;
   }
 
   // Type not found, use scoped type name
