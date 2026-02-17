@@ -317,26 +317,26 @@ function formatSourceFooter(
 const MAX_PARENT_DEPTH = 10;
 
 function resolveDisplayParent(
-  parent: string,
+  parentId: string,
   symbols: ISymbolInfo[],
   workspaceIndex?: WorkspaceIndex,
   depth: number = 0,
 ): string {
   if (depth >= MAX_PARENT_DEPTH) {
-    return parent;
+    return parentId;
   }
 
   // Search local symbols first, then workspace-wide
-  let parentSymbol = symbols.find((s) => s.fullName === parent);
+  let parentSymbol = symbols.find((s) => s.id === parentId);
   if (!parentSymbol && workspaceIndex) {
     parentSymbol = workspaceIndex
       .getAllSymbols()
-      .find((s) => s.fullName === parent);
+      .find((s) => s.id === parentId);
   }
 
-  if (parentSymbol?.parent) {
+  if (parentSymbol?.parentId) {
     const resolvedGrandparent = resolveDisplayParent(
-      parentSymbol.parent,
+      parentSymbol.parentId,
       symbols,
       workspaceIndex,
       depth + 1,
@@ -346,7 +346,7 @@ function resolveDisplayParent(
   if (parentSymbol) {
     return parentSymbol.name;
   }
-  return parent;
+  return parentId;
 }
 
 /**
@@ -413,7 +413,7 @@ function buildVariableHover(
   ctx: IHoverContext,
 ): void {
   const { symbol, displayName, scopeName } = ctx;
-  const kindLabel = symbol.parent ? "field" : "variable";
+  const kindLabel = symbol.parentId ? "field" : "variable";
   md.appendMarkdown(`**${kindLabel}** \`${displayName}\`\n\n`);
   md.appendMarkdown(`*Type:* \`${symbol.type || "unknown"}\``);
   if (symbol.size !== undefined) {
@@ -551,8 +551,8 @@ function buildSymbolHover(
   md.isTrusted = true;
 
   // Build context for hover content
-  const displayParent = symbol.parent
-    ? resolveDisplayParent(symbol.parent, symbols, workspaceIndex)
+  const displayParent = symbol.parentId
+    ? resolveDisplayParent(symbol.parentId, symbols, workspaceIndex)
     : undefined;
   const ctx: IHoverContext = {
     symbol,
