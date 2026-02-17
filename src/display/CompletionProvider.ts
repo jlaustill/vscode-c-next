@@ -575,7 +575,7 @@ export default class CNextCompletionProvider
 
     const scopeMembers = symbols.filter(
       (s) =>
-        s.parent === currentScope &&
+        s.parentId === currentScope &&
         !(s.kind === "function" && s.name === currentFunction),
     );
     this.debug(
@@ -598,7 +598,7 @@ export default class CNextCompletionProvider
 
     const globalSymbols = symbols.filter(
       (s) =>
-        !s.parent &&
+        !s.parentId &&
         s.kind !== "namespace" &&
         !(s.kind === "function" && s.name === currentFunction),
     );
@@ -619,7 +619,7 @@ export default class CNextCompletionProvider
     symbols: ISymbolInfo[],
     parentName: string,
   ): vscode.CompletionItem[] {
-    let members = symbols.filter((s) => s.parent === parentName);
+    let members = symbols.filter((s) => s.parentId === parentName);
     this.debug(
       `C-Next DEBUG: Found ${members.length} members with parent="${parentName}"`,
     );
@@ -636,7 +636,9 @@ export default class CNextCompletionProvider
         this.debug(
           `C-Next DEBUG: "${parentName}" is typed as "${variable.type}", looking up type members`,
         );
-        members = symbols.filter((s) => s.parent === variable.type);
+        const typeSymbol = symbols.find((s) => s.name === variable.type);
+        const typeId = typeSymbol?.id ?? variable.type;
+        members = symbols.filter((s) => s.parentId === typeId);
         this.debug(
           `C-Next DEBUG: Found ${members.length} members for type "${variable.type}"`,
         );
@@ -780,7 +782,7 @@ export default class CNextCompletionProvider
     }
 
     // Add top-level symbols (no parent)
-    const topLevel = symbols.filter((s) => !s.parent);
+    const topLevel = symbols.filter((s) => !s.parentId);
     for (const sym of topLevel) {
       items.push(createSymbolCompletion(sym));
     }
