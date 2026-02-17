@@ -6,9 +6,11 @@ import WorkspaceIndex from "../state/WorkspaceIndex";
 import SymbolResolver from "../state/SymbolResolver";
 import { extractStructFields } from "../state/utils";
 import CNextExtensionContext from "../ExtensionContext";
-import { findOutputPath } from "./utils";
-import { findWordInSource } from "./utils";
-import { getAccessDescription } from "./utils";
+import {
+  findOutputPath,
+  findWordInSource,
+  getAccessDescription,
+} from "./utils";
 
 /**
  * Language type for file detection
@@ -612,41 +614,9 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     const word = document.getText(wordRange);
     const lineText = document.lineAt(position).text;
 
-    // Check for primitive type
-    if (TYPE_INFO[word]) {
-      const info = TYPE_INFO[word];
-      const md = new vscode.MarkdownString();
-      md.appendMarkdown(`**type** \`${word}\`\n\n`);
-      md.appendMarkdown(info.description);
-      if (info.bits > 0) {
-        md.appendMarkdown(`\n\n*Bit width:* ${info.bits}`);
-      }
-      return new vscode.Hover(md, wordRange);
-    }
-
-    // Check for keyword
-    if (KEYWORD_INFO[word]) {
-      const md = new vscode.MarkdownString();
-      md.appendMarkdown(`**keyword** \`${word}\`\n\n`);
-      md.appendMarkdown(KEYWORD_INFO[word]);
-      return new vscode.Hover(md, wordRange);
-    }
-
-    // ADR-047: Check for C library stream functions
-    if (C_LIBRARY_FUNCTIONS[word]) {
-      return new vscode.Hover(
-        buildCLibraryHover(word, C_LIBRARY_FUNCTIONS[word]),
-        wordRange,
-      );
-    }
-
-    // ADR-047: Check for forbidden C library functions
-    if (FORBIDDEN_C_FUNCTIONS[word]) {
-      return new vscode.Hover(
-        buildForbiddenFunctionHover(word, FORBIDDEN_C_FUNCTIONS[word]),
-        wordRange,
-      );
-    }
+    // Check built-in types, keywords, and C library functions
+    const builtinHover = this.tryBuiltinHover(word, wordRange);
+    if (builtinHover) return builtinHover;
 
     // FAST PATH: Parse current document to get local symbols via server
     const source = document.getText();
@@ -694,6 +664,48 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     const cHover = await this.queryCExtensionHover(document, word, wordRange);
     if (cHover) {
       return cHover;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for built-in types, keywords, and C library functions.
+   */
+  private tryBuiltinHover(
+    word: string,
+    wordRange: vscode.Range,
+  ): vscode.Hover | null {
+    if (TYPE_INFO[word]) {
+      const info = TYPE_INFO[word];
+      const md = new vscode.MarkdownString();
+      md.appendMarkdown(`**type** \`${word}\`\n\n`);
+      md.appendMarkdown(info.description);
+      if (info.bits > 0) {
+        md.appendMarkdown(`\n\n*Bit width:* ${info.bits}`);
+      }
+      return new vscode.Hover(md, wordRange);
+    }
+
+    if (KEYWORD_INFO[word]) {
+      const md = new vscode.MarkdownString();
+      md.appendMarkdown(`**keyword** \`${word}\`\n\n`);
+      md.appendMarkdown(KEYWORD_INFO[word]);
+      return new vscode.Hover(md, wordRange);
+    }
+
+    if (C_LIBRARY_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildCLibraryHover(word, C_LIBRARY_FUNCTIONS[word]),
+        wordRange,
+      );
+    }
+
+    if (FORBIDDEN_C_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildForbiddenFunctionHover(word, FORBIDDEN_C_FUNCTIONS[word]),
+        wordRange,
+      );
     }
 
     return null;

@@ -7,14 +7,18 @@ import SymbolResolver from "../state/SymbolResolver";
 import CNextExtensionContext from "../ExtensionContext";
 import { MIN_PREFIX_LENGTH_FOR_CPP_QUERY } from "../constants/minPrefixLengthForCppQuery";
 import ScopeTracker from "../state/ScopeTracker";
-import { extractStructFields } from "../state/utils";
-import { extractTrailingWord } from "../state/utils";
-import { parseMemberAccessChain } from "../state/utils";
-import { countBraceChange } from "../state/utils";
-import { getAccessDescription } from "./utils";
-import { getCompletionLabel } from "./utils";
-import { escapeRegex } from "./utils";
-import { findOutputPath } from "./utils";
+import {
+  extractStructFields,
+  extractTrailingWord,
+  parseMemberAccessChain,
+  countBraceChange,
+} from "../state/utils";
+import {
+  getAccessDescription,
+  getCompletionLabel,
+  escapeRegex,
+  findOutputPath,
+} from "./utils";
 import { C_FUNCTION_DECLARATION_PATTERN } from "../constants/cFunctionDeclarationPattern";
 import { INDENTED_LINE_PATTERN } from "../constants/indentedLinePattern";
 import { INDENTATION_PATTERN } from "../constants/indentationPattern";
@@ -661,13 +665,13 @@ export default class CNextCompletionProvider
     currentScope: string | null,
     symbols: ISymbolInfo[],
     documentUri?: vscode.Uri,
-    source?: string,
-    line?: number,
+    source: string = "",
+    line: number = 0,
   ): vscode.CompletionItem[] {
     // When source is not available but currentScope is known (e.g., direct test calls),
     // synthesize a minimal source that makes ScopeTracker resolve "this" correctly.
-    let effectiveSource = source ?? "";
-    let effectiveLine = line ?? 0;
+    let effectiveSource = source;
+    let effectiveLine = line;
     if (!source && currentScope) {
       effectiveSource = `scope ${currentScope} {\n`;
       effectiveLine = 1;
@@ -966,21 +970,10 @@ export default class CNextCompletionProvider
         `C-Next: C/C++ returned ${completionList?.items?.length || 0} items`,
       );
 
-      const allItems: vscode.CompletionItem[] = [];
-
-      if (completionList?.items) {
-        // Add filtered completion items
-        for (const item of completionList.items) {
-          const label = getCompletionLabel(item.label);
-          if (label.toLowerCase().startsWith(prefix)) {
-            const newItem = new vscode.CompletionItem(label, item.kind);
-            newItem.detail = item.detail || "(C/C++)";
-            newItem.documentation = item.documentation;
-            newItem.insertText = item.insertText;
-            allItems.push(newItem);
-          }
-        }
-      }
+      const allItems = this.filterCompletionsByPrefix(
+        completionList?.items,
+        prefix,
+      );
 
       // Also query workspace symbols to find globals like Serial
       this.debug(`C-Next: Querying workspace symbols for "${prefix}"`);
@@ -988,44 +981,8 @@ export default class CNextCompletionProvider
         vscode.SymbolInformation[]
       >("vscode.executeWorkspaceSymbolProvider", prefix);
 
-      if (symbols?.length) {
-        this.debug(`C-Next: Found ${symbols.length} workspace symbols`);
-
-        // Add symbols that aren't already in completions
-        const existingLabels = new Set(
-          allItems.map((i) => getCompletionLabel(i.label)),
-        );
-
-        for (const sym of symbols) {
-          if (
-            !existingLabels.has(sym.name) &&
-            sym.name.toLowerCase().startsWith(prefix)
-          ) {
-            const kind = this.mapSymbolKindToCompletionKind(sym.kind);
-            const item = new vscode.CompletionItem(sym.name, kind);
-            item.detail = `(${vscode.SymbolKind[sym.kind]})`;
-            allItems.push(item);
-          }
-        }
-      }
-
-      // Add Arduino globals as fallback if they match prefix
-      // These ensure essential Arduino symbols appear even if C/C++ extension doesn't return them
-      const existingLabels = new Set(
-        allItems.map((i) => getCompletionLabel(i.label)),
-      );
-
-      for (const arduino of ARDUINO_GLOBALS) {
-        if (
-          arduino.name.toLowerCase().startsWith(prefix) &&
-          !existingLabels.has(arduino.name)
-        ) {
-          const item = new vscode.CompletionItem(arduino.name, arduino.kind);
-          item.detail = arduino.detail;
-          allItems.push(item);
-          this.debug(`C-Next: Added Arduino fallback: ${arduino.name}`);
-        }
-      }
+      this.addWorkspaceSymbols(allItems, symbols, prefix);
+      this.addArduinoFallbacks(allItems, prefix);
 
       // Limit results
       const limited = allItems.slice(0, MAX_GLOBAL_COMPLETION_ITEMS);
@@ -1064,6 +1021,81 @@ export default class CNextCompletionProvider
         return vscode.CompletionItemKind.Module;
       default:
         return vscode.CompletionItemKind.Variable;
+    }
+  }
+
+  /**
+   * Filter C/C++ completion items by prefix
+   */
+  private filterCompletionsByPrefix(
+    items: vscode.CompletionItem[] | undefined,
+    prefix: string,
+  ): vscode.CompletionItem[] {
+    const result: vscode.CompletionItem[] = [];
+    if (!items) return result;
+
+    for (const item of items) {
+      const label = getCompletionLabel(item.label);
+      if (label.toLowerCase().startsWith(prefix)) {
+        const newItem = new vscode.CompletionItem(label, item.kind);
+        newItem.detail = item.detail || "(C/C++)";
+        newItem.documentation = item.documentation;
+        newItem.insertText = item.insertText;
+        result.push(newItem);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Add workspace symbols that aren't already in the completion list
+   */
+  private addWorkspaceSymbols(
+    allItems: vscode.CompletionItem[],
+    symbols: vscode.SymbolInformation[] | undefined,
+    prefix: string,
+  ): void {
+    if (!symbols?.length) return;
+
+    this.debug(`C-Next: Found ${symbols.length} workspace symbols`);
+    const existingLabels = new Set(
+      allItems.map((i) => getCompletionLabel(i.label)),
+    );
+
+    for (const sym of symbols) {
+      if (
+        !existingLabels.has(sym.name) &&
+        sym.name.toLowerCase().startsWith(prefix)
+      ) {
+        const kind = this.mapSymbolKindToCompletionKind(sym.kind);
+        const item = new vscode.CompletionItem(sym.name, kind);
+        item.detail = `(${vscode.SymbolKind[sym.kind]})`;
+        allItems.push(item);
+      }
+    }
+  }
+
+  /**
+   * Add Arduino globals as fallback if they match prefix and aren't already present
+   */
+  private addArduinoFallbacks(
+    allItems: vscode.CompletionItem[],
+    prefix: string,
+  ): void {
+    const existingLabels = new Set(
+      allItems.map((i) => getCompletionLabel(i.label)),
+    );
+
+    for (const arduino of ARDUINO_GLOBALS) {
+      if (
+        arduino.name.toLowerCase().startsWith(prefix) &&
+        !existingLabels.has(arduino.name)
+      ) {
+        const item = new vscode.CompletionItem(arduino.name, arduino.kind);
+        item.detail = arduino.detail;
+        allItems.push(item);
+        this.debug(`C-Next: Added Arduino fallback: ${arduino.name}`);
+      }
     }
   }
 

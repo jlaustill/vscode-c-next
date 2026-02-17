@@ -57,7 +57,34 @@ export default class SymbolResolver {
     localSymbols: ISymbolInfo[],
     documentUri: vscode.Uri,
   ): IResolvedSymbol | undefined {
-    // Detect dot context
+    const parentName = this.resolveParentContext(
+      lineText,
+      wordRange,
+      documentSource,
+      cursorLine,
+    );
+
+    if (parentName) {
+      return this.resolveWithParent(
+        word,
+        parentName,
+        localSymbols,
+        documentUri,
+      );
+    }
+
+    return this.resolveWithoutParent(word, localSymbols, documentUri);
+  }
+
+  /**
+   * Detect dot context and resolve this/global qualifiers to a parent name.
+   */
+  private resolveParentContext(
+    lineText: string,
+    wordRange: IWordRange,
+    documentSource: string,
+    cursorLine: number,
+  ): string | undefined {
     const charBefore =
       wordRange.startCharacter > 0
         ? lineText.charAt(wordRange.startCharacter - 1)
@@ -66,68 +93,65 @@ export default class SymbolResolver {
     let parentName: string | undefined;
     if (charBefore === ".") {
       const beforeDot = lineText.substring(0, wordRange.startCharacter - 1);
-      const trailingWord = extractTrailingWord(beforeDot);
-      if (trailingWord) {
-        parentName = trailingWord;
-      }
+      parentName = extractTrailingWord(beforeDot) ?? undefined;
     }
 
-    // Resolve this/global qualifiers
     if (parentName === "this") {
-      const scope = ScopeTracker.getCurrentScope(documentSource, cursorLine);
-      if (scope) {
-        parentName = scope;
-      }
-    } else if (parentName === "global") {
-      parentName = undefined;
+      return (
+        ScopeTracker.getCurrentScope(documentSource, cursorLine) ?? parentName
+      );
     }
-
-    // ---------- WITH parent constraint ----------
-    if (parentName) {
-      // Local first
-      const local = findSymbolByName(localSymbols, word, parentName);
-      if (local) {
-        return { ...local, source: "local" };
-      }
-
-      // Workspace members
-      if (this.workspaceIndex) {
-        const wsSymbol = findSymbolByName(
-          this.workspaceIndex.getAllSymbols(),
-          word,
-          parentName,
-        );
-        if (wsSymbol) {
-          return { ...wsSymbol, source: "workspace" };
-        }
-      }
-
-      // Fall back to workspace findDefinition with parent constraint
-      if (this.workspaceIndex) {
-        const def = this.workspaceIndex.findDefinition(
-          word,
-          documentUri,
-          parentName,
-        );
-        if (def) {
-          return { ...def, source: "workspace" };
-        }
-      }
-
+    if (parentName === "global") {
       return undefined;
     }
+    return parentName;
+  }
 
-    // ---------- WITHOUT parent constraint ----------
-    const local = findSymbolWithFallback(localSymbols, word);
-    if (local) {
-      return { ...local, source: "local" };
+  /**
+   * Resolve a symbol with a parent constraint: local → workspace → findDefinition.
+   */
+  private resolveWithParent(
+    word: string,
+    parentName: string,
+    localSymbols: ISymbolInfo[],
+    documentUri: vscode.Uri,
+  ): IResolvedSymbol | undefined {
+    const local = findSymbolByName(localSymbols, word, parentName);
+    if (local) return { ...local, source: "local" };
+
+    if (this.workspaceIndex) {
+      const wsSymbol = findSymbolByName(
+        this.workspaceIndex.getAllSymbols(),
+        word,
+        parentName,
+      );
+      if (wsSymbol) return { ...wsSymbol, source: "workspace" };
+
+      const def = this.workspaceIndex.findDefinition(
+        word,
+        documentUri,
+        parentName,
+      );
+      if (def) return { ...def, source: "workspace" };
     }
+
+    return undefined;
+  }
+
+  /**
+   * Resolve a symbol without parent constraint: local → workspace.
+   */
+  private resolveWithoutParent(
+    word: string,
+    localSymbols: ISymbolInfo[],
+    documentUri: vscode.Uri,
+  ): IResolvedSymbol | undefined {
+    const local = findSymbolWithFallback(localSymbols, word);
+    if (local) return { ...local, source: "local" };
 
     if (this.workspaceIndex) {
       const def = this.workspaceIndex.findDefinition(word, documentUri);
-      if (def) {
-        return { ...def, source: "workspace" };
-      }
+      if (def) return { ...def, source: "workspace" };
     }
 
     return undefined;
@@ -276,7 +300,7 @@ export default class SymbolResolver {
       const typeId = typeSymbol?.id ?? symbol.type;
       const hasMembers = allSymbols.some((s) => s.parentId === typeId);
       if (hasMembers) {
-        return typeId!;
+        return typeId;
       }
     }
 
