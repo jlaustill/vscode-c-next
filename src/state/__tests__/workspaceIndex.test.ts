@@ -42,9 +42,11 @@ function getInternals(index: WorkspaceIndex) {
 function makeSymbol(
   overrides: Partial<ISymbolInfo> & { name: string },
 ): ISymbolInfo {
-  const id = overrides.id ?? (overrides.parent
-    ? `${overrides.parent}.${overrides.name}`
-    : overrides.name);
+  const id =
+    overrides.id ??
+    (overrides.parent
+      ? `${overrides.parent}.${overrides.name}`
+      : overrides.name);
   return {
     fullName: overrides.name,
     kind: "function",

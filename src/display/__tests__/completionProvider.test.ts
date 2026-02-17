@@ -144,10 +144,38 @@ describe("getMemberCompletions", () => {
 
   const scopeSymbols: ISymbolInfo[] = [
     { name: "LED", fullName: "LED", id: "LED", kind: "namespace" },
-    { name: "pin", fullName: "LED.pin", id: "LED.pin", parentId: "LED", kind: "variable", parent: "LED" },
-    { name: "state", fullName: "LED.state", id: "LED.state", parentId: "LED", kind: "variable", parent: "LED" },
-    { name: "on", fullName: "LED.on", id: "LED.on", parentId: "LED", kind: "function", parent: "LED" },
-    { name: "off", fullName: "LED.off", id: "LED.off", parentId: "LED", kind: "function", parent: "LED" },
+    {
+      name: "pin",
+      fullName: "LED.pin",
+      id: "LED.pin",
+      parentId: "LED",
+      kind: "variable",
+      parent: "LED",
+    },
+    {
+      name: "state",
+      fullName: "LED.state",
+      id: "LED.state",
+      parentId: "LED",
+      kind: "variable",
+      parent: "LED",
+    },
+    {
+      name: "on",
+      fullName: "LED.on",
+      id: "LED.on",
+      parentId: "LED",
+      kind: "function",
+      parent: "LED",
+    },
+    {
+      name: "off",
+      fullName: "LED.off",
+      id: "LED.off",
+      parentId: "LED",
+      kind: "function",
+      parent: "LED",
+    },
     {
       name: "toggle",
       fullName: "LED.toggle",
@@ -160,7 +188,14 @@ describe("getMemberCompletions", () => {
 
   const enumSymbols: ISymbolInfo[] = [
     { name: "Color", fullName: "Color", id: "Color", kind: "enum" },
-    { name: "Red", fullName: "Color.Red", id: "Color.Red", parentId: "Color", kind: "enumMember", parent: "Color" },
+    {
+      name: "Red",
+      fullName: "Color.Red",
+      id: "Color.Red",
+      parentId: "Color",
+      kind: "enumMember",
+      parent: "Color",
+    },
     {
       name: "Green",
       fullName: "Color.Green",

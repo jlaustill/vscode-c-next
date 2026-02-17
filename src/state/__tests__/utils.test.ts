@@ -114,8 +114,22 @@ describe("trackBraces", () => {
 
 const testSymbols: IMinimalSymbol[] = [
   { name: "LED", fullName: "LED", id: "LED", kind: "scope" },
-  { name: "toggle", fullName: "LED_toggle", id: "LED.toggle", parentId: "LED", kind: "function", parent: "LED" },
-  { name: "on", fullName: "LED_on", id: "LED.on", parentId: "LED", kind: "function", parent: "LED" },
+  {
+    name: "toggle",
+    fullName: "LED_toggle",
+    id: "LED.toggle",
+    parentId: "LED",
+    kind: "function",
+    parent: "LED",
+  },
+  {
+    name: "on",
+    fullName: "LED_on",
+    id: "LED.on",
+    parentId: "LED",
+    kind: "function",
+    parent: "LED",
+  },
   { name: "GPIO", fullName: "GPIO", id: "GPIO", kind: "register" },
   {
     name: "DR",
@@ -126,7 +140,13 @@ const testSymbols: IMinimalSymbol[] = [
     parent: "GPIO",
     type: "u32",
   },
-  { name: "counter", fullName: "counter", id: "counter", kind: "variable", type: "u32" },
+  {
+    name: "counter",
+    fullName: "counter",
+    id: "counter",
+    kind: "variable",
+    type: "u32",
+  },
 ];
 
 describe("findSymbolByName", () => {
@@ -157,7 +177,14 @@ describe("findSymbolByName", () => {
 
   it("matches by parentId instead of parent", () => {
     const symbols: IMinimalSymbol[] = [
-      { id: "A.B", name: "B", fullName: "A_B", kind: "function", parent: "A", parentId: "A" },
+      {
+        id: "A.B",
+        name: "B",
+        fullName: "A_B",
+        kind: "function",
+        parent: "A",
+        parentId: "A",
+      },
       { id: "B", name: "B", fullName: "B", kind: "namespace" },
     ];
     const result = findSymbolByName(symbols, "B", "A");
