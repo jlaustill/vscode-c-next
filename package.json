@@ -196,6 +196,10 @@
     "test:vscode": "vscode-test",
     "test:all": "npm run test && npm run test:vscode"
   },
+  "volta": {
+    "node": "24.13.1",
+    "npm": "11.8.0"
+  },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.0",
