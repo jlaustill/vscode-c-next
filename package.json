@@ -192,6 +192,7 @@
     "knip": "knip",
     "depcruise": "depcruise src --config .dependency-cruiser.cjs",
     "depcruise:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
+    "duplication": "npx jscpd src/",
     "test": "vitest run",
     "test:unit": "vitest run --exclude='src/__tests__/integration/**'",
     "test:integration": "vitest run src/__tests__/integration/",
