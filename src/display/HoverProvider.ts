@@ -11,6 +11,7 @@ import {
   findWordInSource,
   getAccessDescription,
 } from "./utils";
+import { getWordContext } from "./providerUtils";
 
 /**
  * Language type for file detection
@@ -603,16 +604,10 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
     token: vscode.CancellationToken,
   ): Promise<vscode.Hover | null> {
-    if (token.isCancellationRequested) return null;
+    const ctx = getWordContext(document, position, token);
+    if (!ctx) return null;
 
-    // Get the word at the cursor position
-    const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
-    if (!wordRange) {
-      return null;
-    }
-
-    const word = document.getText(wordRange);
-    const lineText = document.lineAt(position).text;
+    const { word, lineText, wordRange } = ctx;
 
     // Check built-in types, keywords, and C library functions
     const builtinHover = this.tryBuiltinHover(word, wordRange);

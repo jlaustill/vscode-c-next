@@ -22,6 +22,7 @@
     "fputc",
     "fputs",
     "getenv",
+    "graphviz",
     "jlaustill",
     "jscpd",
     "knip",

@@ -62,8 +62,8 @@ jobs:
           [ "${{ steps.cspell.outcome }}" != "success" ] && echo "❌ Spelling" && FAILED=1 || echo "✅ Spelling"
           [ "${{ steps.oxlint.outcome }}" != "success" ] && echo "❌ oxlint" && FAILED=1 || echo "✅ oxlint"
           [ "${{ steps.depcruise.outcome }}" != "success" ] && echo "❌ Architecture (depcruise)" && FAILED=1 || echo "✅ Architecture (depcruise)"
-          [ "${{ steps.knip.outcome }}" != "success" ] && echo "⚠️  Dead code (knip)" || echo "✅ Dead code (knip)"
-          [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "⚠️  Code duplication (jscpd)" || echo "✅ Code duplication (jscpd)"
+          [ "${{ steps.knip.outcome }}" != "success" ] && echo "❌ Dead code (knip)" && FAILED=1 || echo "✅ Dead code (knip)"
+          [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   # ============================================================================

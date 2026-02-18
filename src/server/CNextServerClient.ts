@@ -12,7 +12,7 @@ import * as vscode from "vscode";
 /**
  * Transpile result from server
  */
-export interface ITranspileResult {
+interface ITranspileResult {
   success: boolean;
   code: string;
   errors: Array<{
@@ -44,7 +44,7 @@ export interface ISymbolInfo {
 /**
  * Parse symbols result from server
  */
-export interface IParseSymbolsResult {
+interface IParseSymbolsResult {
   success: boolean;
   errors: Array<{
     line: number;
@@ -58,7 +58,7 @@ export interface IParseSymbolsResult {
 /**
  * Parse C header result from server
  */
-export interface IParseCHeaderResult {
+interface IParseCHeaderResult {
   success: boolean;
   errors: Array<{
     line: number;

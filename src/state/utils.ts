@@ -244,7 +244,7 @@ export function countBraceChange(text: string): number {
   return delta;
 }
 
-export interface BraceState {
+interface BraceState {
   depth: number;
   closedToDepth: number | null; // Lowest depth we closed to, or null if only opened
 }

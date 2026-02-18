@@ -31,7 +31,7 @@ export interface IResolvedSymbol extends ISymbolInfo {
  * Minimal word-range information needed by the resolver.
  * Only the start character is required (to peek at charBefore).
  */
-export interface IWordRange {
+interface IWordRange {
   startCharacter: number;
 }
 

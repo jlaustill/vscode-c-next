@@ -11,7 +11,7 @@ import * as path from "node:path";
 /**
  * Parsed include directive
  */
-export interface IIncludeDirective {
+interface IIncludeDirective {
   /** The include path as written (e.g., "myheader.h" or "subdir/header.h") */
   path: string;
   /** Whether this is a system include (<>) vs local include ("") */
@@ -23,7 +23,7 @@ export interface IIncludeDirective {
 /**
  * Configuration for include path resolution
  */
-export interface IIncludeConfig {
+interface IIncludeConfig {
   /** Paths for resolving "header.h" includes (relative to file) */
   localIncludePaths: string[];
   /** Paths for resolving SDK headers (user-configured) */
@@ -37,7 +37,7 @@ export interface IIncludeConfig {
 /**
  * Default include configuration
  */
-export const DEFAULT_INCLUDE_CONFIG: IIncludeConfig = {
+const DEFAULT_INCLUDE_CONFIG: IIncludeConfig = {
   localIncludePaths: [".", "include", "src"],
   sdkIncludePaths: [],
   excludePatterns: [

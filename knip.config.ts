@@ -12,6 +12,12 @@ const config: KnipConfig = {
     "@types/mocha",
     "mocha",
   ],
+  ignoreBinaries: [
+    // graphviz binary used by depcruise:graph script
+    "dot",
+    // run via npx in duplication script
+    "jscpd",
+  ],
 };
 
 export default config;

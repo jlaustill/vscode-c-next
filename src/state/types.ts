@@ -78,19 +78,3 @@ export const DEFAULT_WORKSPACE_CONFIG: IWorkspaceConfig = {
   maxFileSizeKb: 500,
   enableBackgroundIndexing: true,
 };
-
-/**
- * Result of parsing a file for the workspace index
- */
-export interface IFileParseResult {
-  /** File URI */
-  uri: string;
-  /** Extracted symbols */
-  symbols: ISymbolInfo[];
-  /** Include directives found (Phase 2) */
-  includes: string[];
-  /** Whether parsing succeeded */
-  success: boolean;
-  /** File modification time */
-  mtime: number;
-}
