@@ -141,6 +141,28 @@ describe("SymbolResolver", () => {
       expect(result!.source).toBe("local");
     });
 
+    it("resolves word at startCharacter 0 (no charBefore)", () => {
+      const resolver = new SymbolResolver(null);
+      const localSymbols: ISymbolInfo[] = [
+        makeSymbol({ name: "counter", kind: "variable", type: "u32", line: 1 }),
+      ];
+
+      // word starts at char 0 — no character before it, so no dot context
+      const result = resolver.resolveAtPosition(
+        "counter <- 5;",
+        "counter",
+        { startCharacter: 0 },
+        "",
+        0,
+        localSymbols,
+        Uri.file("/test/file.cnx"),
+      );
+
+      expect(result).toBeDefined();
+      expect(result!.name).toBe("counter");
+      expect(result!.source).toBe("local");
+    });
+
     it("returns undefined when symbol not found locally and no workspace", () => {
       const resolver = new SymbolResolver(null);
       const localSymbols: ISymbolInfo[] = [];
@@ -556,6 +578,39 @@ describe("SymbolResolver", () => {
         Uri.file("/test/file.cnx"),
       );
       expect(result).toBeNull();
+    });
+
+    it("falls back to underscore concatenation when chain member not found", () => {
+      const source = [
+        "scope Teensy4 {",
+        "  public void init() {",
+        "    this.UnknownReg.field;",
+        "  }",
+        "}",
+      ].join("\n");
+
+      const localSymbols: ISymbolInfo[] = [
+        makeSymbol({
+          name: "Teensy4",
+          fullName: "Teensy4",
+          kind: "namespace",
+          line: 1,
+        }),
+        // No "UnknownReg" symbol exists — triggers the fallback path
+      ];
+
+      const resolver = new SymbolResolver(null);
+
+      const result = resolver.resolveChain(
+        ["this", "UnknownReg"],
+        source,
+        2,
+        localSymbols,
+        Uri.file("/test/file.cnx"),
+      );
+
+      // When member isn't found, concatParentName is used: "Teensy4" + "UnknownReg"
+      expect(result).toBe("Teensy4_UnknownReg");
     });
 
     it("resolves typed variable chain: ['current'] → type name for struct member lookup", () => {

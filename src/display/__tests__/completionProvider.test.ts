@@ -138,6 +138,224 @@ function names(items: vscode.CompletionItem[]): string[] {
   );
 }
 
+// Helper to access private filterCompletionsByPrefix
+function callFilterCompletionsByPrefix(
+  provider: CNextCompletionProvider,
+  items: vscode.CompletionItem[] | undefined,
+  prefix: string,
+): vscode.CompletionItem[] {
+  return (
+    provider as unknown as {
+      filterCompletionsByPrefix: (
+        items: vscode.CompletionItem[] | undefined,
+        prefix: string,
+      ) => vscode.CompletionItem[];
+    }
+  ).filterCompletionsByPrefix(items, prefix);
+}
+
+// Helper to access private addWorkspaceSymbols
+function callAddWorkspaceSymbols(
+  provider: CNextCompletionProvider,
+  allItems: vscode.CompletionItem[],
+  symbols: vscode.SymbolInformation[] | undefined,
+  prefix: string,
+): void {
+  (
+    provider as unknown as {
+      addWorkspaceSymbols: (
+        allItems: vscode.CompletionItem[],
+        symbols: vscode.SymbolInformation[] | undefined,
+        prefix: string,
+      ) => void;
+    }
+  ).addWorkspaceSymbols(allItems, symbols, prefix);
+}
+
+// Helper to access private addArduinoFallbacks
+function callAddArduinoFallbacks(
+  provider: CNextCompletionProvider,
+  allItems: vscode.CompletionItem[],
+  prefix: string,
+): void {
+  (
+    provider as unknown as {
+      addArduinoFallbacks: (
+        allItems: vscode.CompletionItem[],
+        prefix: string,
+      ) => void;
+    }
+  ).addArduinoFallbacks(allItems, prefix);
+}
+
+// Helper to access private getNamedMemberCompletions
+function callGetNamedMemberCompletions(
+  provider: CNextCompletionProvider,
+  symbols: ISymbolInfo[],
+  parentName: string,
+): vscode.CompletionItem[] {
+  return (
+    provider as unknown as {
+      getNamedMemberCompletions: (
+        symbols: ISymbolInfo[],
+        parentName: string,
+      ) => vscode.CompletionItem[];
+    }
+  ).getNamedMemberCompletions(symbols, parentName);
+}
+
+describe("filterCompletionsByPrefix", () => {
+  const resolver = new SymbolResolver(null);
+  const provider = new CNextCompletionProvider(resolver);
+
+  it("filters items by prefix", () => {
+    const items = [
+      new vscode.CompletionItem("Serial", vscode.CompletionItemKind.Variable),
+      new vscode.CompletionItem("Serial1", vscode.CompletionItemKind.Variable),
+      new vscode.CompletionItem("pinMode", vscode.CompletionItemKind.Function),
+    ];
+
+    const result = callFilterCompletionsByPrefix(provider, items, "ser");
+    expect(result).toHaveLength(2);
+    expect(names(result)).toContain("Serial");
+    expect(names(result)).toContain("Serial1");
+  });
+
+  it("returns empty array for undefined items", () => {
+    const result = callFilterCompletionsByPrefix(provider, undefined, "ser");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns empty array when no items match prefix", () => {
+    const items = [
+      new vscode.CompletionItem(
+        "digitalWrite",
+        vscode.CompletionItemKind.Function,
+      ),
+    ];
+    const result = callFilterCompletionsByPrefix(provider, items, "ser");
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("addWorkspaceSymbols", () => {
+  const resolver = new SymbolResolver(null);
+  const provider = new CNextCompletionProvider(resolver);
+
+  it("adds workspace symbols not already in the list", () => {
+    const allItems: vscode.CompletionItem[] = [
+      new vscode.CompletionItem("Serial", vscode.CompletionItemKind.Variable),
+    ];
+
+    const symbols: vscode.SymbolInformation[] = [
+      {
+        name: "Serial",
+        kind: vscode.SymbolKind.Variable,
+        location: new vscode.Location(
+          vscode.Uri.file("/test.cpp"),
+          new vscode.Range(0, 0, 0, 0),
+        ),
+        containerName: "",
+      },
+      {
+        name: "Serial1",
+        kind: vscode.SymbolKind.Variable,
+        location: new vscode.Location(
+          vscode.Uri.file("/test.cpp"),
+          new vscode.Range(0, 0, 0, 0),
+        ),
+        containerName: "",
+      },
+    ];
+
+    callAddWorkspaceSymbols(provider, allItems, symbols, "ser");
+    expect(allItems).toHaveLength(2);
+    expect(names(allItems)).toContain("Serial1");
+  });
+
+  it("does nothing for undefined symbols", () => {
+    const allItems: vscode.CompletionItem[] = [];
+    callAddWorkspaceSymbols(provider, allItems, undefined, "ser");
+    expect(allItems).toHaveLength(0);
+  });
+});
+
+describe("addArduinoFallbacks", () => {
+  const resolver = new SymbolResolver(null);
+  const provider = new CNextCompletionProvider(resolver);
+
+  it("adds Arduino globals matching prefix", () => {
+    const allItems: vscode.CompletionItem[] = [];
+    callAddArduinoFallbacks(provider, allItems, "ser");
+    expect(allItems.length).toBeGreaterThan(0);
+    expect(names(allItems).some((n) => n.startsWith("Serial"))).toBe(true);
+  });
+
+  it("skips items already in the list", () => {
+    const allItems: vscode.CompletionItem[] = [
+      new vscode.CompletionItem("Serial", vscode.CompletionItemKind.Variable),
+    ];
+    callAddArduinoFallbacks(provider, allItems, "ser");
+    const serialCount = names(allItems).filter((n) => n === "Serial").length;
+    expect(serialCount).toBe(1);
+  });
+});
+
+describe("getNamedMemberCompletions — type resolution", () => {
+  const resolver = new SymbolResolver(null);
+  const provider = new CNextCompletionProvider(resolver);
+
+  it("resolves typed variable to struct members", () => {
+    const symbols: ISymbolInfo[] = [
+      {
+        name: "Sensor",
+        fullName: "Sensor",
+        id: "Sensor",
+        kind: "namespace",
+      },
+      {
+        name: "current",
+        fullName: "Sensor.current",
+        id: "Sensor.current",
+        parentId: "Sensor",
+        kind: "variable",
+        type: "TSensorValue",
+        parent: "Sensor",
+      },
+      {
+        name: "TSensorValue",
+        fullName: "TSensorValue",
+        id: "TSensorValue",
+        kind: "struct",
+      },
+      {
+        name: "value",
+        fullName: "TSensorValue.value",
+        id: "TSensorValue.value",
+        parentId: "TSensorValue",
+        kind: "field",
+        type: "f32",
+        parent: "TSensorValue",
+      },
+      {
+        name: "valid",
+        fullName: "TSensorValue.valid",
+        id: "TSensorValue.valid",
+        parentId: "TSensorValue",
+        kind: "field",
+        type: "bool",
+        parent: "TSensorValue",
+      },
+    ];
+
+    // "current" is a typed variable — should resolve to TSensorValue members
+    const items = callGetNamedMemberCompletions(provider, symbols, "current");
+    const n = names(items);
+    expect(n).toContain("value");
+    expect(n).toContain("valid");
+  });
+});
+
 describe("getMemberCompletions", () => {
   const resolver = new SymbolResolver(null);
   const provider = new CNextCompletionProvider(resolver);

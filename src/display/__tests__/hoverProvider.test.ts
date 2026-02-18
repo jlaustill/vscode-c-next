@@ -263,6 +263,71 @@ describe("CNextHoverProvider", () => {
     });
   });
 
+  describe("C library function hover", () => {
+    it("returns hover for C library functions like fgets", async () => {
+      const source = "fgets(buf, 10, stream);";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("fgets");
+    });
+  });
+
+  describe("forbidden C function hover", () => {
+    it("returns hover warning for forbidden functions like malloc", async () => {
+      const source = "malloc(64);";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("malloc");
+      expect(md.value).toContain("forbidden");
+    });
+  });
+
   describe("cancellation", () => {
     it("returns null when token is cancelled", async () => {
       const provider = new CNextHoverProvider(new SymbolResolver(null));

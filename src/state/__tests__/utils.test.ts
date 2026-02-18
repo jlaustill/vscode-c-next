@@ -603,6 +603,27 @@ describe("extractStructFields", () => {
     expect(sensor!.type).toBe("TSensorValue");
   });
 
+  it("strips array suffix from field names", () => {
+    const source = [
+      "struct Data {",
+      "    TSensorValue readings[5];",
+      "    u8 buffer[64];",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(2);
+
+    const readings = fields.find((f) => f.name === "readings");
+    expect(readings).toBeDefined();
+    expect(readings!.type).toBe("TSensorValue");
+    expect(readings!.id).toBe("Data.readings");
+
+    const buffer = fields.find((f) => f.name === "buffer");
+    expect(buffer).toBeDefined();
+    expect(buffer!.type).toBe("u8");
+  });
+
   it("ignores comment lines inside struct", () => {
     const source = [
       "struct Data {",
