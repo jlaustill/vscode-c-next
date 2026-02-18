@@ -194,7 +194,16 @@
     "test:coverage": "vitest run --coverage",
     "pretest:vscode": "tsc -p tsconfig.test.json || echo 'tsc reported errors (pre-existing type issues) but files were emitted'",
     "test:vscode": "vscode-test",
-    "test:all": "npm run test && npm run test:vscode"
+    "test:all": "npm run test && npm run test:vscode",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": [
+      "prettier --write --ignore-unknown"
+    ],
+    "*.ts": [
+      "oxlint --fix"
+    ]
   },
   "volta": {
     "node": "24.13.1",
@@ -209,6 +218,8 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.24.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "mocha": "^11.7.5",
     "oxlint": "^0.16.0",
     "prettier": "^3.7.4",
