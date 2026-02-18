@@ -31,7 +31,7 @@ export interface IResolvedSymbol extends ISymbolInfo {
  * Minimal word-range information needed by the resolver.
  * Only the start character is required (to peek at charBefore).
  */
-export interface IWordRange {
+interface IWordRange {
   startCharacter: number;
 }
 
@@ -57,7 +57,34 @@ export default class SymbolResolver {
     localSymbols: ISymbolInfo[],
     documentUri: vscode.Uri,
   ): IResolvedSymbol | undefined {
-    // Detect dot context
+    const parentName = this.resolveParentContext(
+      lineText,
+      wordRange,
+      documentSource,
+      cursorLine,
+    );
+
+    if (parentName) {
+      return this.resolveWithParent(
+        word,
+        parentName,
+        localSymbols,
+        documentUri,
+      );
+    }
+
+    return this.resolveWithoutParent(word, localSymbols, documentUri);
+  }
+
+  /**
+   * Detect dot context and resolve this/global qualifiers to a parent name.
+   */
+  private resolveParentContext(
+    lineText: string,
+    wordRange: IWordRange,
+    documentSource: string,
+    cursorLine: number,
+  ): string | undefined {
     const charBefore =
       wordRange.startCharacter > 0
         ? lineText.charAt(wordRange.startCharacter - 1)
@@ -66,64 +93,65 @@ export default class SymbolResolver {
     let parentName: string | undefined;
     if (charBefore === ".") {
       const beforeDot = lineText.substring(0, wordRange.startCharacter - 1);
-      const trailingWord = extractTrailingWord(beforeDot);
-      if (trailingWord) {
-        parentName = trailingWord;
-      }
+      parentName = extractTrailingWord(beforeDot) ?? undefined;
     }
 
-    // Resolve this/global qualifiers
     if (parentName === "this") {
-      const scope = ScopeTracker.getCurrentScope(documentSource, cursorLine);
-      if (scope) {
-        parentName = scope;
-      }
-    } else if (parentName === "global") {
-      parentName = undefined;
+      return (
+        ScopeTracker.getCurrentScope(documentSource, cursorLine) ?? parentName
+      );
     }
-
-    // ---------- WITH parent constraint ----------
-    if (parentName) {
-      // Local first
-      const local = findSymbolByName(localSymbols, word, parentName);
-      if (local) {
-        return { ...local, source: "local" };
-      }
-
-      // Workspace members
-      if (this.workspaceIndex) {
-        const wsSymbol = findSymbolByName(
-          this.workspaceIndex.getAllSymbols(),
-          word,
-          parentName,
-        );
-        if (wsSymbol) {
-          return { ...wsSymbol, source: "workspace" };
-        }
-      }
-
-      // Fall back to workspace findDefinition (unqualified cross-file)
-      if (this.workspaceIndex) {
-        const def = this.workspaceIndex.findDefinition(word, documentUri);
-        if (def) {
-          return { ...def, source: "workspace" };
-        }
-      }
-
+    if (parentName === "global") {
       return undefined;
     }
+    return parentName;
+  }
 
-    // ---------- WITHOUT parent constraint ----------
-    const local = findSymbolWithFallback(localSymbols, word);
-    if (local) {
-      return { ...local, source: "local" };
+  /**
+   * Resolve a symbol with a parent constraint: local → workspace → findDefinition.
+   */
+  private resolveWithParent(
+    word: string,
+    parentName: string,
+    localSymbols: ISymbolInfo[],
+    documentUri: vscode.Uri,
+  ): IResolvedSymbol | undefined {
+    const local = findSymbolByName(localSymbols, word, parentName);
+    if (local) return { ...local, source: "local" };
+
+    if (this.workspaceIndex) {
+      const wsSymbol = findSymbolByName(
+        this.workspaceIndex.getAllSymbols(),
+        word,
+        parentName,
+      );
+      if (wsSymbol) return { ...wsSymbol, source: "workspace" };
+
+      const def = this.workspaceIndex.findDefinition(
+        word,
+        documentUri,
+        parentName,
+      );
+      if (def) return { ...def, source: "workspace" };
     }
+
+    return undefined;
+  }
+
+  /**
+   * Resolve a symbol without parent constraint: local → workspace.
+   */
+  private resolveWithoutParent(
+    word: string,
+    localSymbols: ISymbolInfo[],
+    documentUri: vscode.Uri,
+  ): IResolvedSymbol | undefined {
+    const local = findSymbolWithFallback(localSymbols, word);
+    if (local) return { ...local, source: "local" };
 
     if (this.workspaceIndex) {
       const def = this.workspaceIndex.findDefinition(word, documentUri);
-      if (def) {
-        return { ...def, source: "workspace" };
-      }
+      if (def) return { ...def, source: "workspace" };
     }
 
     return undefined;
@@ -200,9 +228,9 @@ export default class SymbolResolver {
   // --------------------------------------------------------------------------
 
   /**
-   * Return all symbols whose `parent` matches `parentName`.
+   * Return all symbols whose `parentId` matches `parentName`.
    * Merges local symbols, workspace symbols, and included-file symbols.
-   * Deduplicates by fullName so the same symbol from multiple sources
+   * Deduplicates by id so the same symbol from multiple sources
    * is only returned once.
    */
   findMembers(
@@ -214,14 +242,15 @@ export default class SymbolResolver {
     const result: ISymbolInfo[] = [];
 
     const add = (sym: ISymbolInfo): void => {
-      if (seen.has(sym.fullName)) return;
-      seen.add(sym.fullName);
+      const key = sym.id ?? sym.fullName;
+      if (seen.has(key)) return;
+      seen.add(key);
       result.push(sym);
     };
 
     // Local symbols first (higher priority)
     for (const sym of localSymbols) {
-      if (sym.parent === parentName) {
+      if (sym.parentId === parentName) {
         add(sym);
       }
     }
@@ -229,14 +258,14 @@ export default class SymbolResolver {
     if (this.workspaceIndex) {
       // Workspace-wide symbols
       for (const sym of this.workspaceIndex.getAllSymbols()) {
-        if (sym.parent === parentName) {
+        if (sym.parentId === parentName) {
           add(sym);
         }
       }
 
       // Included file symbols
       for (const sym of this.workspaceIndex.getIncludedSymbols(documentUri)) {
-        if (sym.parent === parentName) {
+        if (sym.parentId === parentName) {
           add(sym);
         }
       }
@@ -266,10 +295,12 @@ export default class SymbolResolver {
       symbol?.type &&
       (symbol.kind === "variable" || symbol.kind === "field")
     ) {
-      // Check if there are actual members using this type as parent
-      const hasMembers = allSymbols.some((s) => s.parent === symbol.type);
+      // Check if there are actual members using this type as parentId
+      const typeSymbol = allSymbols.find((s) => s.name === symbol.type);
+      const typeId = typeSymbol?.id ?? symbol.type;
+      const hasMembers = allSymbols.some((s) => s.parentId === typeId);
       if (hasMembers) {
-        return symbol.type!;
+        return typeId;
       }
     }
 

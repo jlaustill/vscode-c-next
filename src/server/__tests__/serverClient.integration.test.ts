@@ -40,11 +40,14 @@ describeIntegration("ServerClient Integration", () => {
     const led = result.symbols.find((s) => s.name === "LED");
     expect(led).toBeDefined();
     expect(led!.kind).toBe("namespace"); // Server returns "namespace" for scopes
+    expect(led!.id).toBe("LED");
 
     // Fields
     const pin = result.symbols.find((s) => s.name === "pin");
     expect(pin).toBeDefined();
     expect(pin!.parent).toBe("LED");
+    expect(pin!.id).toBe("LED.pin");
+    expect(pin!.parentId).toBe("LED");
     expect(pin!.type).toBe("u8");
 
     const state = result.symbols.find((s) => s.name === "state");
@@ -71,10 +74,14 @@ describeIntegration("ServerClient Integration", () => {
     const init = result.symbols.find((s) => s.name === "init");
     expect(init).toBeDefined();
     expect(init!.parent).toBe("Driver");
+    expect(init!.id).toBe("Driver.init");
+    expect(init!.parentId).toBe("Driver");
 
     const start = result.symbols.find((s) => s.name === "start");
     expect(start).toBeDefined();
     expect(start!.parent).toBe("Driver");
+    expect(start!.id).toBe("Driver.start");
+    expect(start!.parentId).toBe("Driver");
   });
 
   it("parses top-level symbols without parent", async () => {
@@ -86,11 +93,15 @@ describeIntegration("ServerClient Integration", () => {
     );
     expect(driverVersion).toBeDefined();
     expect(driverVersion!.parent).toBeUndefined();
+    expect(driverVersion!.parentId).toBeUndefined();
+    expect(driverVersion!.id).toBe("driverVersion");
     expect(driverVersion!.type).toBe("u8");
 
     const driverHelper = result.symbols.find((s) => s.name === "driverHelper");
     expect(driverHelper).toBeDefined();
     expect(driverHelper!.parent).toBeUndefined();
+    expect(driverHelper!.parentId).toBeUndefined();
+    expect(driverHelper!.id).toBe("driverHelper");
     expect(driverHelper!.kind).toBe("function");
   });
 
@@ -104,6 +115,7 @@ describeIntegration("ServerClient Integration", () => {
     const color = result.symbols.find((s) => s.name === "Color");
     expect(color).toBeDefined();
     expect(color!.kind).toBe("enum");
+    expect(color!.id).toBe("Color");
 
     // Enum members
     const members = result.symbols.filter(
@@ -113,6 +125,11 @@ describeIntegration("ServerClient Integration", () => {
     expect(memberNames).toContain("Red");
     expect(memberNames).toContain("Green");
     expect(memberNames).toContain("Blue");
+
+    // Verify id/parentId on enum members
+    const red = members.find((m) => m.name === "Red");
+    expect(red!.id).toBe("Color.Red");
+    expect(red!.parentId).toBe("Color");
   });
 
   it("parses typed field with correct type", async () => {
@@ -123,6 +140,8 @@ describeIntegration("ServerClient Integration", () => {
     expect(currentColor).toBeDefined();
     expect(currentColor!.type).toBe("Color");
     expect(currentColor!.parent).toBe("Display");
+    expect(currentColor!.id).toBe("Display.currentColor");
+    expect(currentColor!.parentId).toBe("Display");
   });
 
   it("parses global variables and functions", async () => {
@@ -135,14 +154,19 @@ describeIntegration("ServerClient Integration", () => {
     expect(counter).toBeDefined();
     expect(counter!.type).toBe("u8");
     expect(counter!.parent).toBeUndefined();
+    expect(counter!.parentId).toBeUndefined();
+    expect(counter!.id).toBe("globalCounter");
 
     const threshold = result.symbols.find((s) => s.name === "globalThreshold");
     expect(threshold).toBeDefined();
     expect(threshold!.type).toBe("u16");
+    expect(threshold!.id).toBe("globalThreshold");
 
     const reset = result.symbols.find((s) => s.name === "resetCounters");
     expect(reset).toBeDefined();
     expect(reset!.kind).toBe("function");
     expect(reset!.parent).toBeUndefined();
+    expect(reset!.parentId).toBeUndefined();
+    expect(reset!.id).toBe("resetCounters");
   });
 });

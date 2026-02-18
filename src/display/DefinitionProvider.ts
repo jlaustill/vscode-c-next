@@ -4,6 +4,7 @@ import CNextExtensionContext from "../ExtensionContext";
 import SymbolResolver, { IResolvedSymbol } from "../state/SymbolResolver";
 import { extractStructFields } from "../state/utils";
 import { ISymbolInfo } from "../state/types";
+import { getWordContext } from "./providerUtils";
 
 /**
  * C-Next Definition Provider
@@ -26,16 +27,10 @@ export default class CNextDefinitionProvider
     position: vscode.Position,
     token: vscode.CancellationToken,
   ): Promise<vscode.Definition | null> {
-    if (token.isCancellationRequested) return null;
+    const ctx = getWordContext(document, position, token);
+    if (!ctx) return null;
 
-    // Get the word at the cursor position
-    const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
-    if (!wordRange) {
-      return null;
-    }
-
-    const word = document.getText(wordRange);
-    const lineText = document.lineAt(position).text;
+    const { word, lineText, wordRange } = ctx;
     const source = document.getText();
 
     // Parse symbols from the current document
@@ -76,6 +71,28 @@ export default class CNextDefinitionProvider
   }
 
   /**
+   * Build a Location from a line of text, highlighting the symbol name if found.
+   * Falls back to the start of the line if the name isn't on that line.
+   */
+  private buildLocation(
+    uri: vscode.Uri,
+    definitionLine: number,
+    lineText: string,
+    symbolName: string,
+  ): vscode.Location {
+    const nameIndex = lineText.indexOf(symbolName);
+    if (nameIndex >= 0) {
+      const startPos = new vscode.Position(definitionLine, nameIndex);
+      const endPos = new vscode.Position(
+        definitionLine,
+        nameIndex + symbolName.length,
+      );
+      return new vscode.Location(uri, new vscode.Range(startPos, endPos));
+    }
+    return new vscode.Location(uri, new vscode.Position(definitionLine, 0));
+  }
+
+  /**
    * Create a location for a symbol in the current document
    */
   private createLocation(
@@ -83,26 +100,10 @@ export default class CNextDefinitionProvider
     symbol: ISymbolInfo,
     document: vscode.TextDocument,
   ): vscode.Location | null {
-    if (!symbol.line) {
-      return null;
-    }
-
-    const definitionLine = symbol.line - 1; // Convert to 0-based
-
-    // Try to find the exact column of the symbol name on that line
-    const defLineText = document.lineAt(definitionLine).text;
-    const nameIndex = defLineText.indexOf(symbol.name);
-
-    if (nameIndex >= 0) {
-      const startPos = new vscode.Position(definitionLine, nameIndex);
-      const endPos = new vscode.Position(
-        definitionLine,
-        nameIndex + symbol.name.length,
-      );
-      return new vscode.Location(uri, new vscode.Range(startPos, endPos));
-    }
-
-    return new vscode.Location(uri, new vscode.Position(definitionLine, 0));
+    if (!symbol.line) return null;
+    const definitionLine = symbol.line - 1;
+    const lineText = document.lineAt(definitionLine).text;
+    return this.buildLocation(uri, definitionLine, lineText, symbol.name);
   }
 
   /**
@@ -112,32 +113,22 @@ export default class CNextDefinitionProvider
     uri: vscode.Uri,
     symbol: IResolvedSymbol,
   ): vscode.Location | null {
-    if (!symbol.line) {
-      return null;
-    }
-
-    const definitionLine = symbol.line - 1; // Convert to 0-based
+    if (!symbol.line) return null;
+    const definitionLine = symbol.line - 1;
 
     try {
-      // Read the target file to find exact column
       const content = fs.readFileSync(uri.fsPath, "utf-8");
       const lines = content.split("\n");
-
       if (definitionLine < lines.length) {
-        const defLineText = lines[definitionLine];
-        const nameIndex = defLineText.indexOf(symbol.name);
-
-        if (nameIndex >= 0) {
-          const startPos = new vscode.Position(definitionLine, nameIndex);
-          const endPos = new vscode.Position(
-            definitionLine,
-            nameIndex + symbol.name.length,
-          );
-          return new vscode.Location(uri, new vscode.Range(startPos, endPos));
-        }
+        return this.buildLocation(
+          uri,
+          definitionLine,
+          lines[definitionLine],
+          symbol.name,
+        );
       }
     } catch {
-      // File read error - return position at start of line
+      // File read error - fall through to line-start position
     }
 
     return new vscode.Location(uri, new vscode.Position(definitionLine, 0));

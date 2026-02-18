@@ -113,38 +113,44 @@ export default class WorkspaceScanner {
   }
 
   /**
+   * Read and validate a file for indexing, returning its source and mtime.
+   * Returns null if the file should be skipped (cached, too large, server down).
+   */
+  private readFileForIndexing(
+    uri: vscode.Uri,
+    cache: SymbolCache,
+  ): { source: string; mtimeMs: number } | null {
+    if (cache.has(uri) && !cache.isStale(uri)) return null;
+    if (!this.serverClient?.isRunning()) return null;
+    const stat = fs.statSync(uri.fsPath);
+    if (stat.size > this.config.maxFileSizeKb * 1024) return null;
+    return {
+      source: fs.readFileSync(uri.fsPath, "utf-8"),
+      mtimeMs: stat.mtimeMs,
+    };
+  }
+
+  /**
    * Index a single .cnx file
    * @param indexingStack Tracks files currently being indexed to prevent circular includes
    */
   async indexFile(uri: vscode.Uri, indexingStack?: Set<string>): Promise<void> {
-    // Check if already cached and not stale
-    if (this.cache.has(uri) && !this.cache.isStale(uri)) {
-      return;
-    }
-
     // Circular include protection
     if (indexingStack?.has(uri.fsPath)) {
       return;
     }
 
-    // Server client required for parsing
-    if (!this.serverClient?.isRunning()) {
-      return;
-    }
-
     try {
-      const stat = fs.statSync(uri.fsPath);
+      const fileData = this.readFileForIndexing(uri, this.cache);
+      if (!fileData) return;
 
-      // Skip large files
-      if (stat.size > this.config.maxFileSizeKb * 1024) {
-        return;
-      }
-
-      const source = fs.readFileSync(uri.fsPath, "utf-8");
-      const result = await this.serverClient.parseSymbols(source, uri.fsPath);
+      const { source, mtimeMs } = fileData;
+      const result = await this.serverClient!.parseSymbols(source, uri.fsPath);
 
       // Add source file path to each symbol
       const symbolsWithFile: ISymbolInfo[] = result.symbols.map((s) => ({
+        id: s.id,
+        parentId: s.parentId,
         name: s.name,
         fullName: s.fullName,
         kind: s.kind,
@@ -157,7 +163,7 @@ export default class WorkspaceScanner {
         sourceFile: uri.fsPath,
       }));
 
-      this.cache.set(uri, symbolsWithFile, stat.mtimeMs, !result.success);
+      this.cache.set(uri, symbolsWithFile, mtimeMs, !result.success);
 
       // Extract and resolve includes, then index included files
       const includes = this.includeResolver.extractIncludes(source);
@@ -198,26 +204,12 @@ export default class WorkspaceScanner {
    * Index a header file (.h or .c) using the server's C parser
    */
   private async indexHeaderFile(uri: vscode.Uri): Promise<void> {
-    // Check if already cached and not stale
-    if (this.headerCache.has(uri) && !this.headerCache.isStale(uri)) {
-      return;
-    }
-
-    // Server client required for parsing
-    if (!this.serverClient?.isRunning()) {
-      return;
-    }
-
     try {
-      const stat = fs.statSync(uri.fsPath);
+      const fileData = this.readFileForIndexing(uri, this.headerCache);
+      if (!fileData) return;
 
-      // Skip large files
-      if (stat.size > this.config.maxFileSizeKb * 1024) {
-        return;
-      }
-
-      const source = fs.readFileSync(uri.fsPath, "utf-8");
-      const result = await this.serverClient.parseCHeader(source, uri.fsPath);
+      const { source, mtimeMs } = fileData;
+      const result = await this.serverClient!.parseCHeader(source, uri.fsPath);
 
       // Convert to ISymbolInfo format with source file
       const symbolsWithFile: ISymbolInfo[] = result.symbols.map((s) => ({
@@ -230,7 +222,7 @@ export default class WorkspaceScanner {
         sourceFile: uri.fsPath,
       }));
 
-      this.headerCache.set(uri, symbolsWithFile, stat.mtimeMs, false);
+      this.headerCache.set(uri, symbolsWithFile, mtimeMs, false);
     } catch {
       // Parse error or server error - skip silently
     }

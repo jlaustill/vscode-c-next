@@ -39,12 +39,15 @@ describe("CNextHoverProvider", () => {
         {
           name: "LED",
           fullName: "LED",
+          id: "LED",
           kind: "namespace",
           line: 1,
         },
         {
           name: "pin",
           fullName: "LED_pin",
+          id: "LED.pin",
+          parentId: "LED",
           kind: "field",
           type: "u8",
           parent: "LED",
@@ -53,6 +56,8 @@ describe("CNextHoverProvider", () => {
         {
           name: "on",
           fullName: "LED_on",
+          id: "LED.on",
+          parentId: "LED",
           kind: "function",
           type: "void",
           parent: "LED",
@@ -101,12 +106,15 @@ describe("CNextHoverProvider", () => {
         {
           name: "LED",
           fullName: "LED",
+          id: "LED",
           kind: "namespace",
           line: 1,
         },
         {
           name: "something",
           fullName: "LED_something",
+          id: "LED.something",
+          parentId: "LED",
           kind: "field",
           type: "u8",
           parent: "LED",
@@ -252,6 +260,71 @@ describe("CNextHoverProvider", () => {
       expect(md.value).toContain("type");
       expect(md.value).toContain("u32");
       expect(md.value).toContain("32");
+    });
+  });
+
+  describe("C library function hover", () => {
+    it("returns hover for C library functions like fgets", async () => {
+      const source = "fgets(buf, 10, stream);";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("fgets");
+    });
+  });
+
+  describe("forbidden C function hover", () => {
+    it("returns hover warning for forbidden functions like malloc", async () => {
+      const source = "malloc(64);";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("malloc");
+      expect(md.value).toContain("forbidden");
     });
   });
 

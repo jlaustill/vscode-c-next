@@ -113,18 +113,40 @@ describe("trackBraces", () => {
 // ============================================================================
 
 const testSymbols: IMinimalSymbol[] = [
-  { name: "LED", fullName: "LED", kind: "scope" },
-  { name: "toggle", fullName: "LED_toggle", kind: "function", parent: "LED" },
-  { name: "on", fullName: "LED_on", kind: "function", parent: "LED" },
-  { name: "GPIO", fullName: "GPIO", kind: "register" },
+  { name: "LED", fullName: "LED", id: "LED", kind: "scope" },
+  {
+    name: "toggle",
+    fullName: "LED_toggle",
+    id: "LED.toggle",
+    parentId: "LED",
+    kind: "function",
+    parent: "LED",
+  },
+  {
+    name: "on",
+    fullName: "LED_on",
+    id: "LED.on",
+    parentId: "LED",
+    kind: "function",
+    parent: "LED",
+  },
+  { name: "GPIO", fullName: "GPIO", id: "GPIO", kind: "register" },
   {
     name: "DR",
     fullName: "GPIO_DR",
+    id: "GPIO.DR",
+    parentId: "GPIO",
     kind: "registerMember",
     parent: "GPIO",
     type: "u32",
   },
-  { name: "counter", fullName: "counter", kind: "variable", type: "u32" },
+  {
+    name: "counter",
+    fullName: "counter",
+    id: "counter",
+    kind: "variable",
+    type: "u32",
+  },
 ];
 
 describe("findSymbolByName", () => {
@@ -151,6 +173,22 @@ describe("findSymbolByName", () => {
   it("returns undefined when not found", () => {
     expect(findSymbolByName(testSymbols, "notexist")).toBeUndefined();
     expect(findSymbolByName(testSymbols, "toggle", "Wrong")).toBeUndefined();
+  });
+
+  it("matches by parentId instead of parent", () => {
+    const symbols: IMinimalSymbol[] = [
+      {
+        id: "A.B",
+        name: "B",
+        fullName: "A_B",
+        kind: "function",
+        parent: "A",
+        parentId: "A",
+      },
+      { id: "B", name: "B", fullName: "B", kind: "namespace" },
+    ];
+    const result = findSymbolByName(symbols, "B", "A");
+    expect(result?.id).toBe("A.B");
   });
 });
 
@@ -246,6 +284,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "GPIO",
       fullName: "GPIO",
+      id: "GPIO",
       kind: "register",
     };
     expect(resolveNextParent(symbol, "Scope", "GPIO", null, [])).toBe(
@@ -257,6 +296,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "Sub",
       fullName: "Sub",
+      id: "Sub",
       kind: "namespace",
     };
     expect(resolveNextParent(symbol, "Parent", "Sub", null, [])).toBe(
@@ -268,6 +308,7 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "field",
       fullName: "field",
+      id: "field",
       kind: "field",
     };
     expect(resolveNextParent(symbol, "Struct", "field", null, [])).toBe(
@@ -275,10 +316,12 @@ describe("resolveNextParent", () => {
     );
   });
 
-  it("uses fullName when children exist with that parent", () => {
+  it("uses id when children exist with that parentId", () => {
     const symbol: IMinimalSymbol = {
       name: "Pins",
       fullName: "GPIO_Pins",
+      id: "GPIO.Pins",
+      parentId: "GPIO",
       kind: "bitmap",
       type: "u8",
     };
@@ -287,12 +330,14 @@ describe("resolveNextParent", () => {
       {
         name: "bit0",
         fullName: "GPIO_Pins_bit0",
+        id: "GPIO.Pins.bit0",
+        parentId: "GPIO.Pins",
         kind: "bitmapField",
         parent: "GPIO_Pins",
       },
     ];
     expect(resolveNextParent(symbol, "GPIO", "Pins", null, symbols)).toBe(
-      "GPIO_Pins",
+      "GPIO.Pins",
     );
   });
 
@@ -300,12 +345,15 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "PinType",
     };
     const typeSymbol: IMinimalSymbol = {
       name: "PinType",
       fullName: "PinType",
+      id: "PinType",
       kind: "bitmap",
     };
     const symbols = [symbol, typeSymbol];
@@ -314,22 +362,26 @@ describe("resolveNextParent", () => {
     );
   });
 
-  it("uses scoped type name when type symbol has parent", () => {
+  it("uses type symbol id when type symbol has parent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "PinType",
     };
     const typeSymbol: IMinimalSymbol = {
       name: "PinType",
       fullName: "Scope_PinType",
+      id: "Scope.PinType",
+      parentId: "Scope",
       kind: "bitmap",
       parent: "Scope",
     };
     const symbols = [symbol, typeSymbol];
     expect(resolveNextParent(symbol, "reg", "pins", "Scope", symbols)).toBe(
-      "Scope_PinType",
+      "Scope.PinType",
     );
   });
 
@@ -337,6 +389,8 @@ describe("resolveNextParent", () => {
     const symbol: IMinimalSymbol = {
       name: "pins",
       fullName: "reg_pins",
+      id: "reg.pins",
+      parentId: "reg",
       kind: "field",
       type: "UnknownType",
     };
@@ -547,6 +601,27 @@ describe("extractStructFields", () => {
 
     const sensor = fields.find((f) => f.name === "sensor");
     expect(sensor!.type).toBe("TSensorValue");
+  });
+
+  it("strips array suffix from field names", () => {
+    const source = [
+      "struct Data {",
+      "    TSensorValue readings[5];",
+      "    u8 buffer[64];",
+      "}",
+    ].join("\n");
+
+    const fields = extractStructFields(source);
+    expect(fields).toHaveLength(2);
+
+    const readings = fields.find((f) => f.name === "readings");
+    expect(readings).toBeDefined();
+    expect(readings!.type).toBe("TSensorValue");
+    expect(readings!.id).toBe("Data.readings");
+
+    const buffer = fields.find((f) => f.name === "buffer");
+    expect(buffer).toBeDefined();
+    expect(buffer!.type).toBe("u8");
   });
 
   it("ignores comment lines inside struct", () => {

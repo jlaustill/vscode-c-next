@@ -11,7 +11,7 @@ import CNextServerClient from "../server/CNextServerClient";
 import WorkspaceIndex from "../state/WorkspaceIndex";
 import type { ISymbolInfo } from "../state/types";
 
-export const FIXTURES_DIR = path.resolve(__dirname, "fixtures");
+const FIXTURES_DIR = path.resolve(__dirname, "fixtures");
 
 /**
  * Resolve the absolute path to the cnext binary by scanning PATH entries.
@@ -34,7 +34,7 @@ function findCnextBinary(): string | null {
 /**
  * Check if the cnext binary is available on the system
  */
-export function isCnextAvailable(): boolean {
+function isCnextAvailable(): boolean {
   return findCnextBinary() !== null;
 }
 

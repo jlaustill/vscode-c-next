@@ -6,9 +6,12 @@ import WorkspaceIndex from "../state/WorkspaceIndex";
 import SymbolResolver from "../state/SymbolResolver";
 import { extractStructFields } from "../state/utils";
 import CNextExtensionContext from "../ExtensionContext";
-import { findOutputPath } from "./utils";
-import { findWordInSource } from "./utils";
-import { getAccessDescription } from "./utils";
+import {
+  findOutputPath,
+  findWordInSource,
+  getAccessDescription,
+} from "./utils";
+import { getWordContext } from "./providerUtils";
 
 /**
  * Language type for file detection
@@ -317,26 +320,26 @@ function formatSourceFooter(
 const MAX_PARENT_DEPTH = 10;
 
 function resolveDisplayParent(
-  parent: string,
+  parentId: string,
   symbols: ISymbolInfo[],
   workspaceIndex?: WorkspaceIndex,
   depth: number = 0,
 ): string {
   if (depth >= MAX_PARENT_DEPTH) {
-    return parent;
+    return parentId;
   }
 
   // Search local symbols first, then workspace-wide
-  let parentSymbol = symbols.find((s) => s.fullName === parent);
+  let parentSymbol = symbols.find((s) => s.id === parentId);
   if (!parentSymbol && workspaceIndex) {
     parentSymbol = workspaceIndex
       .getAllSymbols()
-      .find((s) => s.fullName === parent);
+      .find((s) => s.id === parentId);
   }
 
-  if (parentSymbol?.parent) {
+  if (parentSymbol?.parentId) {
     const resolvedGrandparent = resolveDisplayParent(
-      parentSymbol.parent,
+      parentSymbol.parentId,
       symbols,
       workspaceIndex,
       depth + 1,
@@ -346,7 +349,7 @@ function resolveDisplayParent(
   if (parentSymbol) {
     return parentSymbol.name;
   }
-  return parent;
+  return parentId;
 }
 
 /**
@@ -413,7 +416,7 @@ function buildVariableHover(
   ctx: IHoverContext,
 ): void {
   const { symbol, displayName, scopeName } = ctx;
-  const kindLabel = symbol.parent ? "field" : "variable";
+  const kindLabel = symbol.parentId ? "field" : "variable";
   md.appendMarkdown(`**${kindLabel}** \`${displayName}\`\n\n`);
   md.appendMarkdown(`*Type:* \`${symbol.type || "unknown"}\``);
   if (symbol.size !== undefined) {
@@ -551,8 +554,8 @@ function buildSymbolHover(
   md.isTrusted = true;
 
   // Build context for hover content
-  const displayParent = symbol.parent
-    ? resolveDisplayParent(symbol.parent, symbols, workspaceIndex)
+  const displayParent = symbol.parentId
+    ? resolveDisplayParent(symbol.parentId, symbols, workspaceIndex)
     : undefined;
   const ctx: IHoverContext = {
     symbol,
@@ -601,52 +604,14 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     position: vscode.Position,
     token: vscode.CancellationToken,
   ): Promise<vscode.Hover | null> {
-    if (token.isCancellationRequested) return null;
+    const ctx = getWordContext(document, position, token);
+    if (!ctx) return null;
 
-    // Get the word at the cursor position
-    const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z_]\w*/);
-    if (!wordRange) {
-      return null;
-    }
+    const { word, lineText, wordRange } = ctx;
 
-    const word = document.getText(wordRange);
-    const lineText = document.lineAt(position).text;
-
-    // Check for primitive type
-    if (TYPE_INFO[word]) {
-      const info = TYPE_INFO[word];
-      const md = new vscode.MarkdownString();
-      md.appendMarkdown(`**type** \`${word}\`\n\n`);
-      md.appendMarkdown(info.description);
-      if (info.bits > 0) {
-        md.appendMarkdown(`\n\n*Bit width:* ${info.bits}`);
-      }
-      return new vscode.Hover(md, wordRange);
-    }
-
-    // Check for keyword
-    if (KEYWORD_INFO[word]) {
-      const md = new vscode.MarkdownString();
-      md.appendMarkdown(`**keyword** \`${word}\`\n\n`);
-      md.appendMarkdown(KEYWORD_INFO[word]);
-      return new vscode.Hover(md, wordRange);
-    }
-
-    // ADR-047: Check for C library stream functions
-    if (C_LIBRARY_FUNCTIONS[word]) {
-      return new vscode.Hover(
-        buildCLibraryHover(word, C_LIBRARY_FUNCTIONS[word]),
-        wordRange,
-      );
-    }
-
-    // ADR-047: Check for forbidden C library functions
-    if (FORBIDDEN_C_FUNCTIONS[word]) {
-      return new vscode.Hover(
-        buildForbiddenFunctionHover(word, FORBIDDEN_C_FUNCTIONS[word]),
-        wordRange,
-      );
-    }
+    // Check built-in types, keywords, and C library functions
+    const builtinHover = this.tryBuiltinHover(word, wordRange);
+    if (builtinHover) return builtinHover;
 
     // FAST PATH: Parse current document to get local symbols via server
     const source = document.getText();
@@ -694,6 +659,48 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     const cHover = await this.queryCExtensionHover(document, word, wordRange);
     if (cHover) {
       return cHover;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for built-in types, keywords, and C library functions.
+   */
+  private tryBuiltinHover(
+    word: string,
+    wordRange: vscode.Range,
+  ): vscode.Hover | null {
+    if (TYPE_INFO[word]) {
+      const info = TYPE_INFO[word];
+      const md = new vscode.MarkdownString();
+      md.appendMarkdown(`**type** \`${word}\`\n\n`);
+      md.appendMarkdown(info.description);
+      if (info.bits > 0) {
+        md.appendMarkdown(`\n\n*Bit width:* ${info.bits}`);
+      }
+      return new vscode.Hover(md, wordRange);
+    }
+
+    if (KEYWORD_INFO[word]) {
+      const md = new vscode.MarkdownString();
+      md.appendMarkdown(`**keyword** \`${word}\`\n\n`);
+      md.appendMarkdown(KEYWORD_INFO[word]);
+      return new vscode.Hover(md, wordRange);
+    }
+
+    if (C_LIBRARY_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildCLibraryHover(word, C_LIBRARY_FUNCTIONS[word]),
+        wordRange,
+      );
+    }
+
+    if (FORBIDDEN_C_FUNCTIONS[word]) {
+      return new vscode.Hover(
+        buildForbiddenFunctionHover(word, FORBIDDEN_C_FUNCTIONS[word]),
+        wordRange,
+      );
     }
 
     return null;

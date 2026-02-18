@@ -12,6 +12,10 @@ export interface ISymbolInfo {
   name: string;
   /** Full qualified name (e.g., "LED_toggle", "GPIO7_DR_SET") */
   fullName: string;
+  /** Dot-path unique identifier (e.g. "LED.toggle") */
+  id?: string;
+  /** Dot-path parent identifier (e.g. "LED") */
+  parentId?: string;
   /** Kind of symbol */
   kind: string;
   /** Type of the symbol (e.g., "void", "u32") */
@@ -74,19 +78,3 @@ export const DEFAULT_WORKSPACE_CONFIG: IWorkspaceConfig = {
   maxFileSizeKb: 500,
   enableBackgroundIndexing: true,
 };
-
-/**
- * Result of parsing a file for the workspace index
- */
-export interface IFileParseResult {
-  /** File URI */
-  uri: string;
-  /** Extracted symbols */
-  symbols: ISymbolInfo[];
-  /** Include directives found (Phase 2) */
-  includes: string[];
-  /** Whether parsing succeeded */
-  success: boolean;
-  /** File modification time */
-  mtime: number;
-}
