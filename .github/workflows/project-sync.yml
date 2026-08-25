@@ -1,0 +1,10 @@
+name: Project sync
+on:
+  issues:
+    types: [opened, assigned, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+jobs:
+  sync:
+    uses: jlaustill/c-next/.github/workflows/project-sync.yml@main
+    secrets: inherit
