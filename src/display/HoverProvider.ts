@@ -77,8 +77,10 @@ const KEYWORD_INFO: Record<string, string> = {
   switch: "Multi-way branch with required braces per case (ADR-025)",
   case: "Switch case label - use || for multiple values",
   default: "Default switch case - use default(n) for counted cases",
-  break: "Exit from loop or switch",
-  continue: "Skip to next loop iteration",
+  break:
+    "Not supported in C-Next: error E0703, use a structured loop condition (ADR-026)",
+  continue:
+    "Not supported in C-Next: error E0703, use a structured loop condition (ADR-026)",
   return: "Return from function",
 
   // Boolean literals
@@ -105,7 +107,7 @@ const KEYWORD_INFO: Record<string, string> = {
   w1s: "Write-1-to-set access modifier for register members",
 
   // Legacy (kept for compatibility)
-  namespace: 'Legacy: Use "scope" instead (ADR-016)',
+  namespace: 'Not C-Next syntax: use "scope" instead (ADR-016)',
 
   // ADR-047: NULL keyword for C interop
   NULL: "C library null pointer - only valid in comparison with C stream functions",

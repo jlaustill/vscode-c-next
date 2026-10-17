@@ -256,6 +256,36 @@ describe("CNextHoverProvider", () => {
       const md = hover!.contents as vscode.MarkdownString;
       expect(md.value).toContain("ADR-071");
     });
+
+    it("says break is rejected with E0703", async () => {
+      const source = "break;";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("E0703");
+    });
   });
 
   describe("type hover", () => {
