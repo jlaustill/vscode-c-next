@@ -55,16 +55,21 @@ export function escapeRegex(str: string): string {
   return str.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
+/**
+ * Find the output file path (.c or .cpp) for a .cnx document.
+ * Falls back to the last good output path, so completions and hover keep
+ * working while the document has parse errors.
+ */
 export function findOutputPath(
-  cnxFsPath: string,
-  uriString: string,
-  outputPathCache: Map<string, string>,
+  uri: { readonly fsPath: string; toString(): string },
+  outputPathCache?: ReadonlyMap<string, string>,
 ): string | null {
+  const cnxFsPath = uri.fsPath;
   const cppPath = cnxFsPath.replace(/\.cnx$/, ".cpp");
   if (fs.existsSync(cppPath)) return cppPath;
   const cPath = cnxFsPath.replace(/\.cnx$/, ".c");
   if (fs.existsSync(cPath)) return cPath;
-  const cachedPath = outputPathCache.get(uriString);
+  const cachedPath = outputPathCache?.get(uri.toString());
   if (cachedPath && fs.existsSync(cachedPath)) return cachedPath;
   return null;
 }
