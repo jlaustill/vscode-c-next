@@ -42,11 +42,11 @@
       "patterns": [
         {
           "name": "keyword.control.cnext",
-          "match": "\\b(if|else|for|while|do|switch|case|default|return|critical)\\b"
+          "match": "\\b(if|else|for|forever|while|do|switch|case|default|return|critical)\\b"
         },
         {
           "name": "keyword.other.cnext",
-          "match": "\\b(register|scope|struct|enum|const|volatile|sizeof)\\b"
+          "match": "\\b(register|scope|struct|enum|const|volatile)\\b"
         },
         {
           "name": "storage.modifier.visibility.cnext",
@@ -59,6 +59,10 @@
         {
           "name": "storage.modifier.atomic.cnext",
           "match": "\\b(atomic)\\b"
+        },
+        {
+          "name": "storage.modifier.mutability.cnext",
+          "match": "\\b(mut)\\b"
         },
         {
           "name": "storage.modifier.cnext",

@@ -63,12 +63,15 @@ const KEYWORD_INFO: Record<string, string> = {
   class: "Declares a type with fields and methods (instances via pointer)",
   struct: "Declares a data structure (ADR-014)",
   enum: "Declares a type-safe enumeration (ADR-017)",
-  const: "Declares a compile-time constant value (ADR-013)",
+  const:
+    "Redundant: every binding is read-only by default, so `const` is error E0898 (ADR-071)",
+  mut: "Declares a binding that can be written; without `mut` it is read-only (ADR-071)",
 
   // Control flow
   if: "Conditional statement",
   else: "Alternative branch of conditional",
   for: "Loop with initialization, condition, and increment",
+  forever: "The one infinite loop, void functions only (ADR-068)",
   while: "Loop with condition",
   do: "Do-while loop - executes at least once (ADR-027)",
   switch: "Multi-way branch with required braces per case (ADR-025)",
@@ -93,9 +96,6 @@ const KEYWORD_INFO: Record<string, string> = {
   // Qualification keywords (ADR-016)
   this: "Refers to members of the current scope",
   global: "Refers to global scope members",
-
-  // Operators
-  sizeof: "Returns the size of a type or expression in bytes (ADR-023)",
 
   // Register access modifiers
   rw: "Read-write access modifier for register members",

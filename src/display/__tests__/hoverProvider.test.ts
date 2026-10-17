@@ -226,6 +226,36 @@ describe("CNextHoverProvider", () => {
       expect(md.value).toContain("keyword");
       expect(md.value).toContain("scope");
     });
+
+    it("returns hover for mut, the ADR-071 write marker", async () => {
+      const source = "mut u32 count <- 0;";
+
+      const mockCtx = createMockExtensionContext(() => ({
+        success: true,
+        errors: [],
+        symbols: [],
+      }));
+
+      const provider = new CNextHoverProvider(
+        new SymbolResolver(null),
+        undefined,
+        mockCtx,
+      );
+
+      const document = vscode.createMockTextDocument({
+        content: source,
+        uri: vscode.Uri.file("/test/test.cnx"),
+        fileName: "/test/test.cnx",
+      });
+      const position = new vscode.Position(0, 0);
+      const token = vscode.createMockCancellationToken();
+
+      const hover = await provider.provideHover(document, position, token);
+
+      expect(hover).not.toBeNull();
+      const md = hover!.contents as vscode.MarkdownString;
+      expect(md.value).toContain("ADR-071");
+    });
   });
 
   describe("type hover", () => {
