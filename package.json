@@ -8,12 +8,12 @@
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jlaustill/vscode-c-next"
+    "url": "https://github.com/smeltworks/vscode-cnx"
   },
   "bugs": {
-    "url": "https://github.com/jlaustill/vscode-c-next/issues"
+    "url": "https://github.com/smeltworks/vscode-cnx/issues"
   },
-  "homepage": "https://github.com/jlaustill/vscode-c-next#readme",
+  "homepage": "https://github.com/smeltworks/vscode-cnx#readme",
   "engines": {
     "vscode": "^1.85.0"
   },

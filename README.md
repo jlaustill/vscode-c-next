@@ -1,6 +1,6 @@
 # C-Next for VS Code
 
-VS Code extension for [C-Next](https://github.com/jlaustill/c-next), a safer C for embedded systems.
+VS Code extension for [C-Next](https://github.com/smeltworks/cnx), a safer C for embedded systems.
 
 ## Features
 
@@ -78,5 +78,5 @@ MIT - See [LICENSE](LICENSE) for details.
 
 ## Related
 
-- [C-Next Transpiler](https://github.com/jlaustill/c-next) - The C-Next language and transpiler
-- [C-Next Documentation](https://github.com/jlaustill/c-next/blob/main/docs/learn-cnext-in-y-minutes.md) - Learn C-Next syntax
+- [C-Next Transpiler](https://github.com/smeltworks/cnx) - The C-Next language and transpiler
+- [C-Next Documentation](https://github.com/smeltworks/cnx/blob/main/docs/learn-cnext-in-y-minutes.md) - Learn C-Next syntax
