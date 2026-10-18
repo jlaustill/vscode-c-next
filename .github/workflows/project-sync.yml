@@ -7,4 +7,5 @@ on:
 jobs:
   sync:
     uses: smeltworks/cnx/.github/workflows/project-sync.yml@main
-    secrets: inherit
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
