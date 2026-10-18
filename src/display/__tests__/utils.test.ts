@@ -1,10 +1,69 @@
-import { describe, it, expect } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   escapeRegex,
+  findDocumentOutputPath,
   findWordInSource,
   getAccessDescription,
   getCompletionLabel,
 } from "../utils";
+
+describe("findDocumentOutputPath", () => {
+  let dir: string;
+  let cnx: string;
+  // The cache is keyed by the document's URI string, which is not its path.
+  const uri = "file:///workspace/main.cnx";
+  const document = () => ({
+    uri: { fsPath: cnx, toString: () => uri },
+  });
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "find-output-"));
+    cnx = path.join(dir, "main.cnx");
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("prefers the .cpp beside the .cnx over the .c", () => {
+    fs.writeFileSync(path.join(dir, "main.cpp"), "");
+    fs.writeFileSync(path.join(dir, "main.c"), "");
+    expect(findDocumentOutputPath(document(), new Map())).toBe(
+      path.join(dir, "main.cpp"),
+    );
+  });
+
+  it("returns the .c when it is the only output", () => {
+    fs.writeFileSync(path.join(dir, "main.c"), "");
+    expect(findDocumentOutputPath(document(), new Map())).toBe(
+      path.join(dir, "main.c"),
+    );
+  });
+
+  it("falls back to the last good output cached under the document's URI", () => {
+    // Neither output exists -- the source fails to parse -- so completions
+    // and hovers read the last output that did build.
+    const cached = path.join(dir, "last-good.c");
+    fs.writeFileSync(cached, "");
+    expect(findDocumentOutputPath(document(), new Map([[uri, cached]]))).toBe(
+      cached,
+    );
+  });
+
+  it("ignores a cached output whose file is gone", () => {
+    const gone = path.join(dir, "gone.c");
+    expect(
+      findDocumentOutputPath(document(), new Map([[uri, gone]])),
+    ).toBeNull();
+  });
+
+  it("returns null with no cache at all, as when the extension context is absent", () => {
+    expect(findDocumentOutputPath(document(), undefined)).toBeNull();
+  });
+});
 
 describe("getAccessDescription", () => {
   it("returns read-write for rw", () => {

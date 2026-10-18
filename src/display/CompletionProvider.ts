@@ -17,7 +17,7 @@ import {
   getAccessDescription,
   getCompletionLabel,
   escapeRegex,
-  findOutputPath,
+  findDocumentOutputPath,
 } from "./utils";
 import { C_FUNCTION_DECLARATION_PATTERN } from "../constants/cFunctionDeclarationPattern";
 import { INDENTED_LINE_PATTERN } from "../constants/indentedLinePattern";
@@ -313,20 +313,6 @@ export default class CNextCompletionProvider
       this.extensionContext.debug(message);
     }
     console.log(message);
-  }
-
-  /**
-   * Find the output file path (.c or .cpp) for a .cnx document
-   * Uses cache if current files don't exist (allows completions during parse errors)
-   */
-  private findOutputFilePath(document: vscode.TextDocument): string | null {
-    const outputPathCache =
-      this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
-    return findOutputPath(
-      document.uri.fsPath,
-      document.uri.toString(),
-      outputPathCache,
-    );
   }
 
   /**
@@ -844,7 +830,10 @@ export default class CNextCompletionProvider
     parentName?: string,
   ): Promise<vscode.CompletionItem[]> {
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputFilePath(document);
+    const outputPath = findDocumentOutputPath(
+      document,
+      this.extensionContext?.lastGoodOutputPath,
+    );
     if (!outputPath) {
       return [];
     }
@@ -937,7 +926,10 @@ export default class CNextCompletionProvider
     );
 
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputFilePath(document);
+    const outputPath = findDocumentOutputPath(
+      document,
+      this.extensionContext?.lastGoodOutputPath,
+    );
     this.debug(`C-Next: findOutputPath returned: ${outputPath}`);
     if (!outputPath) {
       console.log("C-Next: No output path found, returning empty");
