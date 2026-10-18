@@ -15,8 +15,6 @@ const config: KnipConfig = {
   ignoreBinaries: [
     // graphviz binary used by depcruise:graph script
     "dot",
-    // run via npx in duplication script
-    "jscpd",
   ],
 };
 

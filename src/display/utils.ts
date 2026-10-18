@@ -55,7 +55,7 @@ export function escapeRegex(str: string): string {
   return str.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
-export function findOutputPath(
+function findOutputPath(
   cnxFsPath: string,
   uriString: string,
   outputPathCache: Map<string, string>,
@@ -67,4 +67,24 @@ export function findOutputPath(
   const cachedPath = outputPathCache.get(uriString);
   if (cachedPath && fs.existsSync(cachedPath)) return cachedPath;
   return null;
+}
+
+/**
+ * The output file (.c or .cpp) for a .cnx document, falling back to the last
+ * good output cached under its URI -- which keeps completions and hovers
+ * working while the current source fails to parse. No cache (no extension
+ * context) means no fallback.
+ *
+ * The completion and hover providers each held a byte-identical private copy
+ * of this until #10.
+ */
+export function findDocumentOutputPath(
+  document: { uri: { fsPath: string; toString(): string } },
+  outputPathCache: Map<string, string> | undefined,
+): string | null {
+  return findOutputPath(
+    document.uri.fsPath,
+    document.uri.toString(),
+    outputPathCache ?? new Map<string, string>(),
+  );
 }

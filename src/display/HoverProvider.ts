@@ -7,7 +7,7 @@ import SymbolResolver from "../state/SymbolResolver";
 import { extractStructFields } from "../state/utils";
 import CNextExtensionContext from "../ExtensionContext";
 import {
-  findOutputPath,
+  findDocumentOutputPath,
   findWordInSource,
   getAccessDescription,
 } from "./utils";
@@ -707,20 +707,6 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
   }
 
   /**
-   * Find the output file path (.c or .cpp) for a .cnx document
-   * Uses cache if current files don't exist (allows hover during parse errors)
-   */
-  private findOutputFilePath(document: vscode.TextDocument): string | null {
-    const outputPathCache =
-      this.extensionContext?.lastGoodOutputPath ?? new Map<string, string>();
-    return findOutputPath(
-      document.uri.fsPath,
-      document.uri.toString(),
-      outputPathCache,
-    );
-  }
-
-  /**
    * Query the C/C++ extension for hover info by looking up the symbol
    * in the generated .c/.cpp file
    */
@@ -730,7 +716,10 @@ export default class CNextHoverProvider implements vscode.HoverProvider {
     wordRange: vscode.Range,
   ): Promise<vscode.Hover | null> {
     // Find the output file (uses cache if current file has parse errors)
-    const outputPath = this.findOutputFilePath(document);
+    const outputPath = findDocumentOutputPath(
+      document,
+      this.extensionContext?.lastGoodOutputPath,
+    );
     if (!outputPath) {
       return null;
     }
